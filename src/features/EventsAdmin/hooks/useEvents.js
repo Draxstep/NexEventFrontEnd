@@ -1,121 +1,205 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-
-const CATEGORIAS_INICIALES = [
-  { id: 'C01', nombre: 'Concierto' }, { id: 'C02', nombre: 'Teatro' },
-  { id: 'C03', nombre: 'Deportes' }, { id: 'C04', nombre: 'Académico' }
-];
-
-export const UBICACIONES = {
-  "Antioquia": ["Medellín", "Envigado", "Bello", "Itagüí"],
-  "Bogotá D.C.": ["Bogotá"],
-  "Cundinamarca": ["Chía", "Soacha", "Zipaquirá", "Cajicá"],
-  "Valle del Cauca": ["Cali", "Palmira", "Buga", "Buenaventura"]
-};
+import { useState, useEffect, useCallback, useMemo } from "react";
+import {
+  getAllEvents,
+  getAllCategories,
+  getAllDepartments,
+  getCitiesByDepartment,
+  createEvent,
+  updateEvent,
+  toggleEventStatus,
+} from "../services/eventService";
 
 export const useEvents = () => {
-  const [eventos, setEventos] = useState([]);
-  const [categorias, setCategorias] = useState(CATEGORIAS_INICIALES);
+  const [events, setEvents] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [departments, setDepartments] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const [filters, setFilters] = useState({ search: '', estado: '' });
-  const [sortConfig, setSortConfig] = useState({ key: 'fecha', direction: 'asc' }); 
+  const [filters, setFilters] = useState({ search: "", status: "" });
+  const [sortConfig, setSortConfig] = useState({
+    key: "fecha",
+    direction: "asc",
+  });
+
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5; 
+  const itemsPerPage = 5;
+
+  /* =========================
+     LOAD INITIAL DATA
+  ========================= */
+
+  const fetchInitialData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const [
+        eventsData,
+        categoriesData,
+        departmentsData,
+      ] = await Promise.all([
+        getAllEvents(),
+        getAllCategories(),
+        getAllDepartments(),
+      ]);
+
+      setEvents(eventsData);
+      setCategories(categoriesData);
+      setDepartments(departmentsData);
+
+    } catch (err) {
+      console.error(err);
+      setError("Error loading data.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchInitialData();
+  }, [fetchInitialData]);
+
+  /* =========================
+     FILTERING & SORTING
+  ========================= */
 
   const updateFilter = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setCurrentPage(1); 
+    setFilters((prev) => ({ ...prev, [key]: value }));
+    setCurrentPage(1);
   };
-  
+
   const clearFilters = () => {
-    setFilters({ search: '', estado: '' });
+    setFilters({ search: "", status: "" });
     setCurrentPage(1);
   };
 
   const requestSort = (key) => {
-    let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
+    let direction = "asc";
+    if (sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
     }
     setSortConfig({ key, direction });
   };
 
-  const processedEventos = useMemo(() => {
-    let result = eventos.filter(e => {
+  const processedEvents = useMemo(() => {
+    let result = [...events];
+
+    result = result.filter((e) => {
       const term = filters.search.toLowerCase();
-      const matchSearch = e.nombre.toLowerCase().includes(term) || 
-                          e.ciudad.toLowerCase().includes(term) || 
-                          e.lugar.toLowerCase().includes(term);
-      const matchEstado = filters.estado ? e.estado === filters.estado : true;
-      return matchSearch && matchEstado;
+
+      const matchSearch =
+        e.nombre?.toLowerCase().includes(term) ||
+        e.lugar?.toLowerCase().includes(term) ||
+        e.Ciudad?.nombre?.toLowerCase().includes(term) ||
+        e.Categoria?.nombre?.toLowerCase().includes(term);
+
+      const matchStatus =
+        filters.status !== ""
+          ? e.estado === (filters.status === "active")
+          : true;
+
+      return matchSearch && matchStatus;
     });
 
     if (sortConfig.key) {
       result.sort((a, b) => {
-        let aValue = a[sortConfig.key];
-        let bValue = b[sortConfig.key];
+        let aValue;
+        let bValue;
 
-        if (sortConfig.key === 'categoria') {
-          aValue = categorias.find(c => c.id === aValue)?.nombre || '';
-          bValue = categorias.find(c => c.id === bValue)?.nombre || '';
+        if (sortConfig.key === "categoria") {
+          aValue = a.Categoria?.nombre || "";
+          bValue = b.Categoria?.nombre || "";
+        } else if (sortConfig.key === "ciudad") {
+          aValue = a.Ciudad?.nombre || "";
+          bValue = b.Ciudad?.nombre || "";
+        } else {
+          aValue = a[sortConfig.key];
+          bValue = b[sortConfig.key];
         }
 
-        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        if (aValue < bValue)
+          return sortConfig.direction === "asc" ? -1 : 1;
+        if (aValue > bValue)
+          return sortConfig.direction === "asc" ? 1 : -1;
         return 0;
       });
     }
 
     return result;
-  }, [eventos, filters, sortConfig, categorias]);
+  }, [events, filters, sortConfig]);
 
-  const totalPages = Math.ceil(processedEventos.length / itemsPerPage);
-  const paginatedEventos = processedEventos.slice(
+  const totalPages = Math.ceil(processedEvents.length / itemsPerPage);
+
+  const paginatedEvents = processedEvents.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
-  const fetchEventos = useCallback(async () => {
-    setLoading(true); setError(null);
+  /* =========================
+     CRUD ACTIONS
+  ========================= */
+
+  const addEvent = async (newEvent) => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setEventos([{ id: 1, nombre: 'Festival de Verano', fecha: '2026-08-15', departamento: 'Cundinamarca', ciudad: 'Bogotá', lugar: 'Parque Simón Bolívar', hora: '14:00', categoria: 'C01', descripcion: 'Gran festival anual.', valor: 50000, estado: 'A', imagen: null }]);
-    } catch (err) { setError("Error al cargar los eventos."); } finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { fetchEventos(); }, [fetchEventos]);
-
-  const procesarCategoria = (categoriaInput) => {
-    const existe = categorias.find(c => c.id === categoriaInput || c.nombre.toLowerCase() === categoriaInput.toLowerCase());
-    if (existe) return existe.id;
-    const nuevaCategoria = { id: `C${Date.now()}`, nombre: categoriaInput };
-    setCategorias(prev => [...prev, nuevaCategoria]);
-    return nuevaCategoria.id;
+      await createEvent(newEvent);
+      await fetchInitialData();
+    } catch (err) {
+      setError(err.message || "Error creating event.");
+    }
   };
 
-  const agregarEvento = (nuevoEvento) => {
-    const categoriaId = procesarCategoria(nuevoEvento.categoria);
-    const eventoConId = { ...nuevoEvento, categoria: categoriaId, id: Date.now(), estado: 'A' };
-    setEventos(prev => [eventoConId, ...prev]);
+  const editEvent = async (updatedEvent) => {
+    try {
+      await updateEvent(updatedEvent.id, updatedEvent);
+      await fetchInitialData();
+    } catch (err) {
+      setError(err.message || "Error updating event.");
+    }
   };
 
-  const actualizarEvento = (eventoActualizado) => {
-    const categoriaId = procesarCategoria(eventoActualizado.categoria);
-    const eventoFinal = { ...eventoActualizado, categoria: categoriaId };
-    setEventos(prev => prev.map(ev => ev.id === eventoFinal.id ? eventoFinal : ev));
+  const disableEvent = async (id) => {
+    try {
+      await toggleEventStatus(id);
+      await fetchInitialData();
+    } catch (err) {
+      setError(err.message || "Error changing event status.");
+    }
   };
 
-  const deshabilitarEvento = async (id) => {
-    if (Math.random() < 0.2) throw new Error("No fue posible completar la acción. Error de conexión con el servidor.");
-    setEventos(prev => prev.map(ev => ev.id === id ? { ...ev, estado: 'I' } : ev));
+  const loadCitiesByDepartment = async (departmentId) => {
+    try {
+      const data = await getCitiesByDepartment(departmentId);
+      setCities(data);
+      return data; // 🔥 IMPORTANTE: retornar los datos
+    } catch (err) {
+      console.error(err);
+      setCities([]);
+      return []; // 🔥 retornar array vacío para evitar undefined
+    }
   };
 
   return {
-    eventos: paginatedEventos, 
-    loading, error, categorias, ubicaciones: UBICACIONES, filters,
-    sortConfig, requestSort, currentPage, totalPages, setCurrentPage,
-    fetchEventos, agregarEvento, actualizarEvento, deshabilitarEvento,
-    updateFilter, clearFilters
+    events: paginatedEvents,
+    categories,
+    cities,
+    departments,
+    loading,
+    error,
+    filters,
+    sortConfig,
+    currentPage,
+    totalPages,
+    setCurrentPage,
+    fetchEvents: fetchInitialData,
+    addEvent,
+    editEvent,
+    disableEvent,
+    updateFilter,
+    clearFilters,
+    requestSort,
+    loadCitiesByDepartment,
   };
 };
