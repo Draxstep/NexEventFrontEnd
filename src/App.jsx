@@ -1,13 +1,8 @@
-import { useState } from 'react'
-import './App.css'
-import EventsManagment from './pages/EventsManagment'
+import { RouterProvider } from 'react-router-dom';
+import { router } from './routes/AppRouter';
 
 function App() {
-  return (
-    <div className="min-h-screen bg-gray-100">
-      <EventsManagment />
-    </div>
-  )
+  return <RouterProvider router={router} />;
 }
 
-export default App
+export default App;
