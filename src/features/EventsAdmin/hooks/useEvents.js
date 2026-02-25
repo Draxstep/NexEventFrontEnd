@@ -18,16 +18,14 @@ export const useEvents = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Estados de Filtros, Ordenamiento y Paginación
   const [filters, setFilters] = useState({ search: '', estado: '' });
-  const [sortConfig, setSortConfig] = useState({ key: 'fecha', direction: 'asc' }); // "Próximos eventos" por defecto
+  const [sortConfig, setSortConfig] = useState({ key: 'fecha', direction: 'asc' }); 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5; // Eventos por página
+  const itemsPerPage = 5; 
 
-  // --- LÓGICA DE FILTROS ---
   const updateFilter = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
-    setCurrentPage(1); // Resetear a la página 1 al filtrar
+    setCurrentPage(1); 
   };
   
   const clearFilters = () => {
@@ -35,7 +33,6 @@ export const useEvents = () => {
     setCurrentPage(1);
   };
 
-  // --- LÓGICA DE ORDENAMIENTO ---
   const requestSort = (key) => {
     let direction = 'asc';
     if (sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -44,9 +41,7 @@ export const useEvents = () => {
     setSortConfig({ key, direction });
   };
 
-  // --- PROCESAMIENTO DEL ARRAY (Filtrado + Ordenamiento) ---
   const processedEventos = useMemo(() => {
-    // 1. Filtrar
     let result = eventos.filter(e => {
       const term = filters.search.toLowerCase();
       const matchSearch = e.nombre.toLowerCase().includes(term) || 
@@ -56,7 +51,6 @@ export const useEvents = () => {
       return matchSearch && matchEstado;
     });
 
-    // 2. Ordenar
     if (sortConfig.key) {
       result.sort((a, b) => {
         let aValue = a[sortConfig.key];
@@ -76,7 +70,6 @@ export const useEvents = () => {
     return result;
   }, [eventos, filters, sortConfig, categorias]);
 
-  // 3. Paginar
   const totalPages = Math.ceil(processedEventos.length / itemsPerPage);
   const paginatedEventos = processedEventos.slice(
     (currentPage - 1) * itemsPerPage,
@@ -119,7 +112,7 @@ export const useEvents = () => {
   };
 
   return {
-    eventos: paginatedEventos, // Exportamos únicamente los que tocan en la página actual
+    eventos: paginatedEventos, 
     loading, error, categorias, ubicaciones: UBICACIONES, filters,
     sortConfig, requestSort, currentPage, totalPages, setCurrentPage,
     fetchEventos, agregarEvento, actualizarEvento, deshabilitarEvento,
