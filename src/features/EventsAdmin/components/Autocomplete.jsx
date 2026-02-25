@@ -21,7 +21,7 @@ export default function Autocomplete({
     if (selectedOption) {
       setQuery(selectedOption.label);
     }
-  }, [value]); // 🔥 SOLO depende de value
+  }, [value]); 
 
   useEffect(() => {
     const handleClickOutside = (e) => {

@@ -130,17 +130,13 @@ const EventForm = ({
       newErrors.valor = "Must be greater than or equal to 0";
     }
 
-    console.log("🛑 ERRORES DETECTADOS:", newErrors); // 👈 AGREGA ESTO
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("🔥 SUBMIT DISPARADO");
     if (!validateForm()) return;
-    console.log("🔥 SUBMIT DISPARADO");
     onSubmit({
       id: formData.id,
       nombre: formData.nombre,

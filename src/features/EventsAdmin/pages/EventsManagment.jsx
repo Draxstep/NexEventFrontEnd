@@ -29,6 +29,7 @@ export default function EventsManagement() {
     updateFilter,
     clearFilters,
     loadCitiesByDepartment,
+    fetchEventById,
   } = useEvents();
 
   const [view, setView] = useState("list");
@@ -63,8 +64,9 @@ export default function EventsManagement() {
     setView("form");
   };
 
-  const handleView = (event) => {
-    setSelectedEvent(event);
+  const handleView = async (event) => {
+    const fullEvent = await fetchEventById(event.id);
+    setSelectedEvent(fullEvent);
     setView("detail");
   };
 
@@ -125,11 +127,10 @@ export default function EventsManagement() {
 
     return (
       <div
-        className={`fixed bottom-4 right-4 sm:bottom-8 sm:right-8 text-white px-4 py-3 rounded-lg shadow-lg flex items-center animate-fade-in z-[200] max-w-[90vw] sm:max-w-md ${
-          toast.type === "error"
+        className={`fixed bottom-4 right-4 sm:bottom-8 sm:right-8 text-white px-4 py-3 rounded-lg shadow-lg flex items-center animate-fade-in z-[200] max-w-[90vw] sm:max-w-md ${toast.type === "error"
             ? "bg-red-600"
             : "bg-green-600"
-        }`}
+          }`}
       >
         {toast.type === "error" ? (
           <XCircle size={20} className="mr-2" />

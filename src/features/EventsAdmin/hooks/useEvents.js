@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   getAllEvents,
+  getEventById,
   getAllCategories,
   getAllDepartments,
   getCitiesByDepartment,
@@ -168,6 +169,15 @@ export const useEvents = () => {
       setError(err.message || "Error changing event status.");
     }
   };
+  
+  const fetchEventById = async (id) => {
+    try {
+      return await getEventById(id);
+    } catch (error) {
+      console.error("Error fetching event by id:", error);
+      throw error;
+    }
+  };
 
   const loadCitiesByDepartment = async (departmentId) => {
     try {
@@ -194,6 +204,7 @@ export const useEvents = () => {
     totalPages,
     setCurrentPage,
     fetchEvents: fetchInitialData,
+    fetchEventById,
     addEvent,
     editEvent,
     disableEvent,
