@@ -19,3 +19,34 @@ export const getActiveEventById = async (id) => {
 
   return response.json();
 };
+
+// Registrar interés
+export const registrarInteres = async (evento_id) => {
+  const response = await fetch(`${API_URL}/intereses`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ evento_id }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Error al registrar interés');
+  }
+
+  return response.json();
+};
+
+// Obtener conteo
+export const obtenerConteoIntereses = async (evento_id) => {
+  const response = await fetch(
+    `${API_URL}/intereses/evento/${evento_id}/conteo`
+  );
+
+  if (!response.ok) {
+    throw new Error('Error al obtener conteo de intereses');
+  }
+
+  return response.json();
+};

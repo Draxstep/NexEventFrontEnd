@@ -1,7 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { getActiveEvents, getActiveEventById } from "../services/eventsUsers";
+import {
+  getActiveEvents,
+  getActiveEventById,
+  registrarInteres as registrarInteresService,
+  obtenerConteoIntereses
+} from "../services/eventsUsers";
 
 export const useEventsUsers = () => {
+  const [conteo, setConteo] = useState(0);
   const [eventosOriginales, setEventosOriginales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -72,6 +78,10 @@ export const useEventsUsers = () => {
     }
   }, []);
 
+  useEffect(() => {
+    fetchEventos();
+  }, [fetchEventos]);
+
   // 🔥 Traer evento por ID real
   const fetchEventoById = useCallback(async (id) => {
     setLoading(true);
@@ -88,24 +98,30 @@ export const useEventsUsers = () => {
     }
   }, []);
 
-  // 🔹 Interés (puedes luego conectarlo al backend)
-  const checkInteresPrevio = (eventoId) =>
-    localStorage.getItem(`interes_evento_${eventoId}`) === "true";
 
-  const registrarInteres = async (eventoId) => {
-    if (checkInteresPrevio(eventoId)) return false;
-
+  const fetchConteo = useCallback(async (eventoId) => {
     try {
-      localStorage.setItem(`interes_evento_${eventoId}`, "true");
-      return true;
-    } catch {
-      throw new Error("No pudimos registrar tu interés.");
+      const data = await obtenerConteoIntereses(eventoId);
+      setConteo(data.conteo || 0);
+    } catch (err) {
+      setError(err.message);
     }
-  };
+  }, []);
 
-  useEffect(() => {
-    fetchEventos();
-  }, [fetchEventos]);
+  const registrarInteres = useCallback(async (eventoId) => {
+    try {
+      setError(null);
+
+      await registrarInteresService(eventoId); // 🔥 ahora sí correcto
+
+      await fetchConteo(eventoId);
+
+      return true;
+    } catch (err) {
+      setError(err.message);
+      return false;
+    }
+  }, [fetchConteo]);
 
   return {
     eventos: eventosFiltrados,
@@ -117,7 +133,8 @@ export const useEventsUsers = () => {
     clearFilters,
     fetchEventos,
     fetchEventoById,
-    checkInteresPrevio,
+    conteo,
     registrarInteres,
+    fetchConteo,
   };
 };
