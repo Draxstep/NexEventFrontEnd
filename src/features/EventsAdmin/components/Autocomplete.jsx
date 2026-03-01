@@ -9,19 +9,21 @@ export default function Autocomplete({
   const wrapperRef = useRef(null);
 
   useEffect(() => {
-    if (value === undefined || value === null || value === '') {
-      setQuery('');
-      return;
+    // Si acaba de perder el foco, forzamos a que vuelva a tener el layout de la opción original
+    // o vaciando el texto, dependiendo de si en todo caso, está cerrado y el usuario no eligió nada de la lista.
+    if (!isOpen) {
+      if (value === undefined || value === null || value === '') {
+        setQuery('');
+      } else {
+        const selectedOption = options.find(
+          opt => String(opt.value) === String(value)
+        );
+        if (selectedOption && query !== selectedOption.label) {
+          setQuery(selectedOption.label);
+        }
+      }
     }
-
-    const selectedOption = options.find(
-      opt => String(opt.value) === String(value)
-    );
-
-    if (selectedOption) {
-      setQuery(selectedOption.label);
-    }
-  }, [value]); 
+  }, [value, options, isOpen]); 
 
   useEffect(() => {
     const handleClickOutside = (e) => {

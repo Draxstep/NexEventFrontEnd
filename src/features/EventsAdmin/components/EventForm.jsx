@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Save, ArrowLeft } from "lucide-react";
+import { Save, ArrowLeft, Ban } from "lucide-react";
 import Autocomplete from "./Autocomplete";
 
 const initialForm = {
@@ -30,7 +30,7 @@ const EventForm = ({
     initialData
       ? {
         ...initialData,
-        categoria_id: initialData?.Categoria?.id || "",
+        categoria_id: initialData?.categoria?.id || initialData?.Categoria?.id || initialData?.Categorium?.id || "",
         ciudad_id: initialData?.Ciudad?.id || "",
         departamento_id:
           initialData?.Ciudad?.Departamento?.id || "",
@@ -43,17 +43,31 @@ const EventForm = ({
   const [cityOptions, setCityOptions] = useState([]);
 
   useEffect(() => {
+    // Si la data inicial cambia desde fuera (ej. cargó un nuevo evento),
+    // actualizamos el estado interno del formulario.
     if (initialData) {
       setFormData({
         ...initialData,
-        categoria_id: initialData?.Categoria?.id || "",
+        categoria_id: initialData?.categoria?.id || initialData?.Categoria?.id || initialData?.Categorium?.id || "",
         ciudad_id: initialData?.Ciudad?.id || "",
         departamento_id:
           initialData?.Ciudad?.Departamento?.id || "",
         imagen: null,
       });
+
+      // Si tenemos un departamento inicial, aseguremos que se carguen las ciudades para que el autocomplete de ciudad se mapee
+      if (initialData?.Ciudad?.Departamento?.id) {
+        loadCitiesByDepartment(initialData.Ciudad.Departamento.id).then(cities => {
+          if (cities) {
+            setCityOptions(cities.map(city => ({
+              value: city.id,
+              label: city.nombre
+            })));
+          }
+        });
+      }
     }
-  }, [initialData]);
+  }, [initialData?.id]); // Solo se dispara si cambia el ID del evento initial, así no estropea tu escritura si hay un re-render del componente padre
 
   const departmentOptions = departments.map((d) => ({
     value: d.id,
@@ -205,19 +219,30 @@ const EventForm = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
           {/* Nombre */}
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 relative">
             <label className="block text-sm font-medium">
-              Event Name *
+              Event Name {isEditing ? "" : "*"}
             </label>
-            <input
-              type="text"
-              value={formData.nombre}
-              disabled={isEditing}
-              onChange={(e) =>
-                handleChange("nombre", e.target.value)
-              }
-              className="mt-1 w-full px-3 py-2 border rounded-lg border-gray-300"
-            />
+            <div className="relative mt-1 group">
+              <input
+                type="text"
+                value={formData.nombre}
+                disabled={isEditing}
+                onChange={(e) =>
+                  handleChange("nombre", e.target.value)
+                }
+                className={`w-full px-3 py-2 border rounded-lg ${
+                  isEditing 
+                    ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed" 
+                    : "border-gray-300"
+                }`}
+              />
+              {isEditing && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-red-500 transition-colors" title="Name cannot be modified">
+                  <Ban size={18} />
+                </div>
+              )}
+            </div>
             <ErrorMsg name="nombre" />
           </div>
 
@@ -338,19 +363,27 @@ const EventForm = ({
             <label className="block text-sm font-medium">
               Event Image (PNG, JPG, Max: 5MB)
             </label>
-            <input
-              type="file"
-              accept=".jpg,.jpeg,.png"
-              onChange={handleImageChange}
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-            />
+            <div className="mt-1 flex flex-col gap-3">
+              {isEditing && formData.imagen_url && !formData.imagen && (
+                <div className="w-full flex items-center border border-gray-200 rounded-lg p-2 bg-gray-50">
+                  <div className="h-12 w-12 shrink-0 rounded overflow-hidden">
+                    <img src={formData.imagen_url} alt="Current event" className="h-full w-full object-cover" />
+                  </div>
+                  <span className="ml-3 text-xs text-gray-500 flex-1">Current image. Upload a new one to replace it.</span>
+                </div>
+              )}
+              <input
+                type="file"
+                accept=".jpg,.jpeg,.png"
+                onChange={handleImageChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+              />
+            </div>
+            
             {formData.imagen && (
               <span className="text-xs text-green-600 mt-1 block">Selected file: {formData.imagen.name}</span>
             )}
-            {/* Si ya hay imagen guardada pero no estamos subiendo una nueva, se puede mostrar acá */}
-            {isEditing && !formData.imagen && formData.imagen_url && (
-              <span className="text-xs text-gray-500 mt-1 block">Current image active. Uploading a new one replaces it.</span>
-            )}
+            
             <ErrorMsg name="imagen" />
           </div>
 
