@@ -13,12 +13,18 @@ export const useEventsUsers = () => {
   const [error, setError] = useState(null);
 
   const [filters, setFilters] = useState({ search: "", categoria: "" });
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 6;
 
-  const updateFilter = (key, value) =>
+  const updateFilter = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
+    setCurrentPage(1); // Volvemos a la primera página al filtrar
+  };
 
-  const clearFilters = () =>
+  const clearFilters = () => {
     setFilters({ search: "", categoria: "" });
+    setCurrentPage(1); // Volvemos a la primera página de la lista cuando no hay filtros
+  };
 
   // 🔥 Adaptador del formato backend → formato UI
   const adaptEvent = (event) => ({
@@ -29,7 +35,7 @@ export const useEventsUsers = () => {
     departamento: event.Ciudad?.Departamento?.nombre || "",
     ciudad: event.Ciudad?.nombre || "",
     lugar: event.lugar,
-    categoria: event.categoria?.nombre || event.Categoria?.nombre || "",
+    categoria: event.categoria?.nombre || event.Categorium?.nombre || event.Categoria?.nombre || "",
     descripcion: event.descripcion,
     valor: event.valor,
     estado: event.estado,
@@ -39,7 +45,7 @@ export const useEventsUsers = () => {
   // 🔹 Extraer categorías únicas
   const categoriasDisponibles = useMemo(() => {
     const categoriasSet = new Set(
-      eventosOriginales.map((e) => e.categoria)
+      eventosOriginales.map((e) => e.categoria).filter(Boolean)
     );
     return Array.from(categoriasSet).sort();
   }, [eventosOriginales]);
@@ -51,8 +57,8 @@ export const useEventsUsers = () => {
 
       const matchSearch =
         e.nombre.toLowerCase().includes(term) ||
-        e.ciudad.toLowerCase().includes(term) ||
-        e.lugar.toLowerCase().includes(term);
+        (e.ciudad && e.ciudad.toLowerCase().includes(term)) ||
+        (e.lugar && e.lugar.toLowerCase().includes(term));
 
       const matchCategoria = filters.categoria
         ? e.categoria === filters.categoria
@@ -61,6 +67,18 @@ export const useEventsUsers = () => {
       return matchSearch && matchCategoria;
     });
   }, [eventosOriginales, filters]);
+
+  // 🔹 Paginación en memoria
+  const paginatedEvents = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return eventosFiltrados.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [eventosFiltrados, currentPage]);
+
+  const totalPages = Math.ceil(eventosFiltrados.length / ITEMS_PER_PAGE);
+
+  const goToPage = (pageNumber) => {
+    setCurrentPage(Math.max(1, Math.min(pageNumber, totalPages)));
+  };
 
   // 🔥 Traer eventos activos reales
   const fetchEventos = useCallback(async () => {
@@ -98,7 +116,6 @@ export const useEventsUsers = () => {
     }
   }, []);
 
-
   const fetchConteo = useCallback(async (eventoId) => {
     try {
       const data = await obtenerConteoIntereses(eventoId);
@@ -124,7 +141,8 @@ export const useEventsUsers = () => {
   }, [fetchConteo]);
 
   return {
-    eventos: eventosFiltrados,
+    // Retornamos los eventos paginados en lugar de todos
+    eventos: paginatedEvents,
     loading,
     error,
     filters,
@@ -136,5 +154,9 @@ export const useEventsUsers = () => {
     conteo,
     registrarInteres,
     fetchConteo,
+    // Utils de paginación
+    currentPage,
+    totalPages,
+    goToPage,
   };
 };
