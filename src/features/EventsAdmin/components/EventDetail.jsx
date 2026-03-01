@@ -125,17 +125,26 @@ const EventDetail = ({ event, onBack }) => {
             </div>
 
             <div className="flex items-start">
-              <ImageIcon className="text-gray-400 mr-3 mt-1" size={20} />
-              <div>
-                <p className="text-sm text-gray-500">
-                  Representative Image
+              <ImageIcon className="text-gray-400 mr-3 mt-1 shrink-0" size={20} />
+              <div className="w-full">
+                <p className="text-sm text-gray-500 mb-2">
+                  Event Image
                 </p>
 
-                <div className="mt-2 w-full max-w-xs h-32 bg-gray-100 border border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400 text-sm">
-                  {event.imagen_url
-                    ? "Image available"
-                    : "No image"}
-                </div>
+                {event.imagen_url ? (
+                  <div className="w-full max-w-sm rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+                    <img
+                      src={event.imagen_url}
+                      alt={`Image for ${event.nombre}`}
+                      className="w-full h-auto object-cover max-h-64"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full max-w-sm h-32 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center text-gray-400">
+                    <ImageIcon size={32} className="mb-2 opacity-50" />
+                    <span className="text-sm">No image available</span>
+                  </div>
+                )}
               </div>
             </div>
 
