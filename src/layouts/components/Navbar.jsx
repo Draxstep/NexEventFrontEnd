@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Menu, X, CalendarDays } from 'lucide-react';
+import { Menu, X, CalendarDays, LogIn, UserPlus } from 'lucide-react';
 import { NavLink } from 'react-router-dom'; 
+import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from '@clerk/clerk-react';
 
 const NAV_LINKS = [
   { id: 'inicio', label: 'Inicio', path: '/' },
@@ -27,12 +28,42 @@ const Navbar = () => {
             <span className="font-bold text-xl tracking-tight truncate">EventMaster</span>
           </div>
 
-          <div className="hidden md:flex space-x-8">
+          <div className="hidden md:flex space-x-8 items-center">
             {NAV_LINKS.map((link) => (
               <NavLink key={link.id} to={link.path} className={navLinkClass}>
                 {link.label}
               </NavLink>
             ))}
+            
+            {/* Clerk Authentication Buttons - Desktop */}
+            <div className="ml-4 pl-4 border-l border-blue-500 flex items-center space-x-3">
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <button className="flex items-center space-x-1 text-sm font-medium text-white hover:text-blue-200 transition-colors px-3 py-2">
+                    <LogIn size={16} className="mr-1" />
+                    <span>Ingresar</span>
+                  </button>
+                </SignInButton>
+                <SignUpButton mode="modal">
+                  <button className="flex items-center space-x-1 text-sm font-medium bg-white text-blue-700 hover:bg-blue-50 transition-colors px-4 py-2 rounded-full shadow-sm hover:shadow">
+                    <UserPlus size={16} className="mr-1" />
+                    <span>Registrarse</span>
+                  </button>
+                </SignUpButton>
+              </SignedOut>
+              <SignedIn>
+                <div className="bg-blue-800 p-1 rounded-full shadow-inner flex items-center justify-center">
+                  <UserButton 
+                    appearance={{
+                      elements: {
+                        avatarBox: "w-8 h-8 border-2 border-transparent hover:border-blue-300 transition-all",
+                        userButtonPopoverCard: "shadow-xl border border-gray-100"
+                      }
+                    }}
+                  />
+                </div>
+              </SignedIn>
+            </div>
           </div>
 
           <div className="flex md:hidden items-center">
@@ -51,24 +82,56 @@ const Navbar = () => {
 
       <div
         className={`md:hidden absolute w-full bg-blue-800 shadow-lg transition-all duration-300 ease-in-out ${
-          isOpen ? 'max-h-64 opacity-100 visible' : 'max-h-0 opacity-0 invisible'
+          isOpen ? 'max-h-[400px] opacity-100 visible pb-4' : 'max-h-0 opacity-0 invisible'
         } overflow-hidden`}
       >
-        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+        <div className="px-4 pt-2 pb-3 space-y-1">
           {NAV_LINKS.map((link) => (
             <NavLink
               key={link.id}
               to={link.path}
               onClick={() => setIsOpen(false)}
               className={({ isActive }) =>
-                `block px-3 py-4 text-base font-medium rounded-md transition-colors ${
-                  isActive ? 'bg-blue-900 text-white' : 'text-blue-100 hover:text-white hover:bg-blue-600'
+                `block px-3 py-3 text-base font-medium rounded-md transition-colors ${
+                  isActive ? 'bg-blue-900 text-white' : 'text-blue-100 hover:text-white hover:bg-blue-700'
                 }`
               }
             >
               {link.label}
             </NavLink>
           ))}
+          
+          {/* Clerk Authentication Buttons - Mobile */}
+          <div className="pt-4 mt-2 border-t border-blue-700">
+            <SignedOut>
+              <div className="flex flex-col space-y-3">
+                <SignInButton mode="modal">
+                  <button 
+                    onClick={() => setIsOpen(false)}
+                    className="flex justify-center items-center w-full px-4 py-2 border border-blue-400 text-base font-medium rounded-md text-white hover:bg-blue-700 transition-colors"
+                  >
+                    <LogIn size={18} className="mr-2" />
+                    Ingresar
+                  </button>
+                </SignInButton>
+                <SignUpButton mode="modal">
+                  <button 
+                    onClick={() => setIsOpen(false)}
+                    className="flex justify-center items-center w-full px-4 py-2 text-base font-medium rounded-md text-blue-800 bg-white hover:bg-blue-50 transition-colors shadow-sm"
+                  >
+                    <UserPlus size={18} className="mr-2" />
+                    Crear cuenta
+                  </button>
+                </SignUpButton>
+              </div>
+            </SignedOut>
+            <SignedIn>
+              <div className="flex items-center px-3 py-2 bg-blue-900/50 rounded-lg">
+                <UserButton />
+                <span className="ml-3 text-sm font-medium text-blue-100">Mi Perfil</span>
+              </div>
+            </SignedIn>
+          </div>
         </div>
       </div>
     </nav>
