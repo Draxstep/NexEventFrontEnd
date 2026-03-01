@@ -92,7 +92,7 @@ const EventDetail = ({ event, onBack }) => {
               <div>
                 <p className="text-sm text-gray-500">Category</p>
                 <p className="font-medium">
-                  {event.Categoria?.nombre}
+                  {event.categoria?.nombre || event.Categoria?.nombre || event.Categorium?.nombre || "No category"}
                 </p>
               </div>
             </div>
