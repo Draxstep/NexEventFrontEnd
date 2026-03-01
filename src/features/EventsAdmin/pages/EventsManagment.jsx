@@ -76,24 +76,33 @@ export default function EventsManagement() {
   };
 
   const handleFormSubmit = async (formData) => {
-    if (formData.id) {
-      setModal({
-        isOpen: true,
-        title: "Update Event",
-        message:
-          "Are you sure you want to save the changes to this event?",
-        isDanger: false,
-        onConfirm: async () => {
-          await editEvent(formData);
-          closeModal();
-          showToast("Event updated successfully.");
-          setView("list");
-        },
-      });
-    } else {
-      await addEvent(formData);
-      showToast("Event created successfully.");
-      setView("list");
+    try {
+      if (formData.id) {
+        setModal({
+          isOpen: true,
+          title: "Update Event",
+          message:
+            "Are you sure you want to save the changes to this event?",
+          isDanger: false,
+          onConfirm: async () => {
+            try {
+              await editEvent(formData);
+              closeModal();
+              showToast("Event updated successfully.");
+              setView("list");
+            } catch (err) {
+              closeModal();
+              showToast(err.message || "Failed to update event", "error");
+            }
+          },
+        });
+      } else {
+        await addEvent(formData);
+        showToast("Event created successfully.");
+        setView("list");
+      }
+    } catch (err) {
+      showToast(err.message || "Failed to create event", "error");
     }
   };
 

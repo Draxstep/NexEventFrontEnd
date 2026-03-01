@@ -23,26 +23,48 @@ export const getEventById = async (id) => {
 };
 
 export const createEvent = async (data) => {
+  const formData = new FormData();
+  
+  Object.keys(data).forEach((key) => {
+    // Si la clave es "imagen" y es null, no la enviamos
+    if (data[key] !== undefined && data[key] !== null) {
+      if (key === "imagen" && !(data[key] instanceof File)) {
+        return; // Evita mandar algo que no sea un archivo en la clave imagen
+      }
+      formData.append(key, data[key]);
+    }
+  });
+
   const response = await fetch(`${API_URL}/eventos`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: formData,
   });
 
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error || "Failed to create event");
+  if (!response.ok) throw new Error(result.error || result.message || "Failed to create event");
   return result;
 };
 
 export const updateEvent = async (id, data) => {
+  const formData = new FormData();
+  
+  Object.keys(data).forEach((key) => {
+    // Si la clave es "imagen" y es null, no la enviamos
+    if (data[key] !== undefined && data[key] !== null) {
+      if (key === "imagen" && !(data[key] instanceof File)) {
+        return; // Evita mandar algo que no sea un archivo en la clave imagen
+      }
+      formData.append(key, data[key]);
+    }
+  });
+
   const response = await fetch(`${API_URL}/eventos/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: formData,
   });
 
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error || "Failed to update event");
+  if (!response.ok) throw new Error(result.error || result.message || "Failed to update event");
   return result;
 };
 

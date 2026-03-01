@@ -13,6 +13,7 @@ const initialForm = {
   descripcion: "",
   valor: "",
   imagen_url: "",
+  imagen: null,
 };
 
 const EventForm = ({
@@ -33,6 +34,7 @@ const EventForm = ({
         ciudad_id: initialData?.Ciudad?.id || "",
         departamento_id:
           initialData?.Ciudad?.Departamento?.id || "",
+        imagen: null,
       }
       : initialForm
   );
@@ -48,11 +50,11 @@ const EventForm = ({
         ciudad_id: initialData?.Ciudad?.id || "",
         departamento_id:
           initialData?.Ciudad?.Departamento?.id || "",
+        imagen: null,
       });
     }
   }, [initialData]);
 
-  // 🔹 Opciones formateadas
   const departmentOptions = departments.map((d) => ({
     value: d.id,
     label: d.nombre,
@@ -63,7 +65,6 @@ const EventForm = ({
     label: c.nombre,
   }));
 
-  // 🔹 Cuando cambia el departamento
   const handleDepartmentChange = async (selectedValue) => {
     const numericId = Number(selectedValue);
 
@@ -137,6 +138,8 @@ const EventForm = ({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validateForm()) return;
+    
+    // We send 'imagen' to the service layer.
     onSubmit({
       id: formData.id,
       nombre: formData.nombre,
@@ -148,6 +151,7 @@ const EventForm = ({
       descripcion: formData.descripcion,
       valor: formData.valor,
       imagen_url: formData.imagen_url,
+      imagen: formData.imagen,
     });
   };
 
@@ -157,6 +161,29 @@ const EventForm = ({
         {errors[name]}
       </span>
     ) : null;
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validación lado cliente opcional, pero ayuda a la UX
+    if (!["image/jpeg", "image/png", "image/jpg"].includes(file.type)) {
+      setErrors((prev) => ({ ...prev, imagen: "Select a valid image format (PNG, JPG)" }));
+      setFormData((prev) => ({ ...prev, imagen: null }));
+      e.target.value = null; // resetea el input
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors((prev) => ({ ...prev, imagen: "Image must be less than 5MB" }));
+      setFormData((prev) => ({ ...prev, imagen: null }));
+      e.target.value = null; // resetea el input
+      return;
+    }
+
+    setErrors((prev) => ({ ...prev, imagen: null }));
+    setFormData((prev) => ({ ...prev, imagen: file }));
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-md border border-gray-200 w-full">
@@ -304,6 +331,27 @@ const EventForm = ({
               className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
             <ErrorMsg name="valor" />
+          </div>
+
+          {/* Imagen */}
+          <div>
+            <label className="block text-sm font-medium">
+              Event Image (PNG, JPG, Max: 5MB)
+            </label>
+            <input
+              type="file"
+              accept=".jpg,.jpeg,.png"
+              onChange={handleImageChange}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            />
+            {formData.imagen && (
+              <span className="text-xs text-green-600 mt-1 block">Selected file: {formData.imagen.name}</span>
+            )}
+            {/* Si ya hay imagen guardada pero no estamos subiendo una nueva, se puede mostrar acá */}
+            {isEditing && !formData.imagen && formData.imagen_url && (
+              <span className="text-xs text-gray-500 mt-1 block">Current image active. Uploading a new one replaces it.</span>
+            )}
+            <ErrorMsg name="imagen" />
           </div>
 
           {/* Descripción */}

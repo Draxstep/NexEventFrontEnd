@@ -149,6 +149,7 @@ export const useEvents = () => {
       await fetchInitialData();
     } catch (err) {
       setError(err.message || "Error creating event.");
+      throw err;
     }
   };
 
@@ -158,6 +159,7 @@ export const useEvents = () => {
       await fetchInitialData();
     } catch (err) {
       setError(err.message || "Error updating event.");
+      throw err;
     }
   };
 
