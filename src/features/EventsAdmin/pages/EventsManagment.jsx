@@ -70,8 +70,9 @@ export default function EventsManagement() {
     setView("detail");
   };
 
-  const handleEdit = (event) => {
-    setSelectedEvent(event);
+  const handleEdit = async (event) => {
+    const fullEvent = await fetchEventById(event.id);
+    setSelectedEvent(fullEvent);
     setView("form");
   };
 

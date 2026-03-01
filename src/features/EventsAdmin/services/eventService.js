@@ -46,26 +46,42 @@ export const createEvent = async (data) => {
 };
 
 export const updateEvent = async (id, data) => {
-  const formData = new FormData();
-  
-  Object.keys(data).forEach((key) => {
-    // Si la clave es "imagen" y es null, no la enviamos
-    if (data[key] !== undefined && data[key] !== null) {
-      if (key === "imagen" && !(data[key] instanceof File)) {
-        return; // Evita mandar algo que no sea un archivo en la clave imagen
+  // Si no se está enviando una nueva imagen (la imagen no es archivo físico)
+  // enviamos JSON estándar en el PUT para coincidir con cómo está configurado tu backend para actualizar sin multer.
+  const hasNewImage = data.imagen instanceof File;
+
+  if (hasNewImage) {
+    // Si realmente tu backend soporta multer en el PUT (router.put('/:id', upload.single('imagen')...) ) usaríamos FormData:
+    const formData = new FormData();
+    Object.keys(data).forEach((key) => {
+      if (data[key] !== undefined && data[key] !== null) {
+        if (key === "imagen" && !(data[key] instanceof File)) return;
+        formData.append(key, data[key]);
       }
-      formData.append(key, data[key]);
-    }
-  });
+    });
 
-  const response = await fetch(`${API_URL}/eventos/${id}`, {
-    method: "PUT",
-    body: formData,
-  });
+    const response = await fetch(`${API_URL}/eventos/${id}`, {
+      method: "PUT",
+      body: formData,
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || result.details || "Failed to update event");
+    return result;
+  } else {
+    // Para las actualizaciones normales sin cambios de foto o donde el backend esperaba application/json
+    const payload = { ...data };
+    delete payload.imagen; // No mandamos el File nulo en JSON
 
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.error || result.message || "Failed to update event");
-  return result;
+    const response = await fetch(`${API_URL}/eventos/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || result.details || "Failed to update event");
+    return result;
+  }
 };
 
 export const toggleEventStatus = async (id) => {
