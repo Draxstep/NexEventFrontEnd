@@ -1,9 +1,9 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout.jsx';
-import Home from '../pages/Home.jsx';
 import EventsManagment from '../features/EventsAdmin/pages/EventsManagment.jsx';
 import PublicEvents from '../features/EventsUsers/pages/PublicEvents.jsx';
 import PublicEventDetailPage from '../features/EventsUsers/pages/PublicEventDetailPage.jsx';
+import ProtectedRoute from './ProtectedRoute.jsx';
 
 export const router = createBrowserRouter([
   {
@@ -13,19 +13,25 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true, 
-        element: <Home />,
+        element: <PublicEvents />,
       },
       {
         path: 'eventos',
-        element: <PublicEvents />,
+        element: <Navigate to="/" replace />, // Redirigimos /eventos a la raíz para mantener consistencia
       },
       {
         path: 'eventos/:id', 
         element: <PublicEventDetailPage />,
       },
       {
-        path: 'gestion-eventos',
-        element: <EventsManagment />, 
+        // Protegemos esta ruta usando el componente ProtectedRoute
+        element: <ProtectedRoute allowedRoles={['admin']} />,
+        children: [
+          {
+            path: 'gestion-eventos',
+            element: <EventsManagment />, 
+          }
+        ]
       },
       
     ],
