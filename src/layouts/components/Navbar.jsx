@@ -1,16 +1,24 @@
 import React, { useState } from 'react';
 import { Menu, X, CalendarDays, LogIn, UserPlus } from 'lucide-react';
 import { NavLink } from 'react-router-dom'; 
-import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from '@clerk/clerk-react';
-
-const NAV_LINKS = [
-  { id: 'inicio', label: 'Inicio', path: '/' },
-  { id: 'eventos', label: 'Eventos', path: '/eventos' },
-  { id: 'gestion', label: 'Gestión Eventos', path: '/gestion-eventos' },
-];
+import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton, useUser } from '@clerk/clerk-react';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { user } = useUser();
+  
+  // Verificamos si el usuario tiene rol 'admin' en su public metadata
+  const isAdmin = user?.publicMetadata?.role === 'admin';
+
+  // Construimos los enlaces de navegación de forma dinámica
+  const navLinks = [
+    { id: 'eventos', label: 'Eventos', path: '/' },
+  ];
+
+  if (isAdmin) {
+    navLinks.push({ id: 'gestion', label: 'Gestión Eventos', path: '/gestion-eventos' });
+  }
+
   const toggleMenu = () => setIsOpen(!isOpen);
   const navLinkClass = ({ isActive }) =>
     `px-3 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -29,7 +37,7 @@ const Navbar = () => {
           </div>
 
           <div className="hidden md:flex space-x-8 items-center">
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <NavLink key={link.id} to={link.path} className={navLinkClass}>
                 {link.label}
               </NavLink>
@@ -86,7 +94,7 @@ const Navbar = () => {
         } overflow-hidden`}
       >
         <div className="px-4 pt-2 pb-3 space-y-1">
-          {NAV_LINKS.map((link) => (
+          {navLinks.map((link) => (
             <NavLink
               key={link.id}
               to={link.path}
