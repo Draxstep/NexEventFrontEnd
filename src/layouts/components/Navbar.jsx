@@ -33,7 +33,7 @@ const Navbar = () => {
           
           <div className="flex items-center space-x-2 flex-shrink-0">
             <CalendarDays className="h-8 w-8 text-blue-200" />
-            <span className="font-bold text-xl tracking-tight truncate">EventMaster</span>
+            <span className="font-bold text-xl tracking-tight truncate">NexEvent</span>
           </div>
 
           <div className="hidden md:flex space-x-8 items-center">

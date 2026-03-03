@@ -3,10 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useEventsUsers } from '../hooks/useEventsUsers';
 import PublicEventDetail from '../components/PublicEventDetail';
+import { useClerk } from '@clerk/clerk-react';
 
 export default function PublicEventDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { openSignIn, isSignedIn } = useClerk();
 
   const {
     fetchEventoById,
@@ -85,6 +87,10 @@ export default function PublicEventDetailPage() {
   ========================== */
   const handleRegistrarInteres = async () => {
     if (!evento) return;
+    if (!isSignedIn) {
+      openSignIn();
+      return;
+    }
 
     const success = await registrarInteres(evento.id);
     console.log("Success:", success);
@@ -164,8 +170,8 @@ export default function PublicEventDetailPage() {
       {toast && (
         <div
           className={`fixed bottom-4 right-4 sm:bottom-8 sm:right-8 text-white px-5 py-4 rounded-xl shadow-2xl flex items-center animate-fade-in z-[200] max-w-[90vw] sm:max-w-md border border-white/20 backdrop-blur-sm ${toast.type === 'error'
-            ? 'bg-red-600/95'
-            : 'bg-gray-800/95'
+              ? 'bg-red-600/95'
+              : 'bg-gray-800/95'
             }`}
         >
           {toast.type === 'error'
