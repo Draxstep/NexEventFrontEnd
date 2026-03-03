@@ -5,7 +5,8 @@ import {
   getActiveEventById,
   registrarInteres as registrarInteresService,
   obtenerConteoIntereses,
-  verificarInteres as verificarInteresService
+  verificarInteres as verificarInteresService,
+  eliminarInteres as eliminarInteresService
 } from "../services/eventsUsers";
 
 
@@ -172,6 +173,22 @@ export const useEventsUsers = () => {
     }
   }, [fetchConteo, user]);
 
+  const eliminarInteres = useCallback(async (eventoId) => {
+    try {
+      setError(null);
+      if (!user?.id) {
+        throw new Error("Usuario no autenticado");
+      }
+      await eliminarInteresService(eventoId, user.id);
+      setInteresado(false);
+      await fetchConteo(eventoId);
+      return true;
+    } catch (err) {
+      setError(err.message);
+      return false;
+    }
+  }, [user, fetchConteo]);
+
   return {
     // Retornamos los eventos paginados en lugar de todos
     eventos: paginatedEvents,
@@ -188,6 +205,7 @@ export const useEventsUsers = () => {
     fetchConteo,
     interesado,
     verificarInteres,
+    eliminarInteres,
     // Utils de paginación
     currentPage,
     totalPages,

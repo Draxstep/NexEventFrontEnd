@@ -14,7 +14,8 @@ export default function PublicEventDetailPage() {
     registrarInteres,
     fetchConteo,
     verificarInteres,
-    interesado
+    interesado,
+    eliminarInteres
   } = useEventsUsers();
 
   const [evento, setEvento] = useState(null);
@@ -86,7 +87,7 @@ export default function PublicEventDetailPage() {
     if (!evento) return;
 
     const success = await registrarInteres(evento.id);
-
+    console.log("Success:", success);
     if (success) {
       showToast(
         '¡Gracias por tu interés! Lo hemos registrado.',
@@ -98,8 +99,27 @@ export default function PublicEventDetailPage() {
         'error'
       );
     }
+    return success;
   };
 
+  const handleEliminarInteres = async () => {
+    if (!evento) return;
+
+    const success = await eliminarInteres(evento.id);
+
+    if (success) {
+      showToast(
+        'Tu interés ha sido eliminado.',
+        'success'
+      );
+    } else {
+      showToast(
+        'No se pudo eliminar el interés.',
+        'error'
+      );
+    }
+    return success;
+  };
   /* =========================
      🔹 ESTADOS
   ========================== */
@@ -163,7 +183,8 @@ export default function PublicEventDetailPage() {
         conteoIntereses={conteo}
         onVolver={() => navigate('/eventos')}
         onInteres={handleRegistrarInteres}
-        isInterestedInitial={interesado}
+        isInterested={interesado}
+        onEliminarInteres={handleEliminarInteres}
       />
     </div>
   );

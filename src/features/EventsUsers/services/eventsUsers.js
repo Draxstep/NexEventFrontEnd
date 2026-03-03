@@ -62,3 +62,19 @@ export const verificarInteres = async (evento_id, usuario_id) => {
 
   return response.json();
 };
+
+export const eliminarInteres = async (evento_id, usuario_id) => {
+  const response = await fetch(
+    `${API_URL}/intereses/evento/${evento_id}/usuario/${usuario_id}`,
+    {
+      method: 'DELETE',
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Error eliminando interés");
+  }
+
+  return true; 
+};
