@@ -1,12 +1,19 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useAuth, useUser } from "@clerk/clerk-react";
 import {
   getActiveEvents,
   getActiveEventById,
   registrarInteres as registrarInteresService,
-  obtenerConteoIntereses
+  obtenerConteoIntereses,
+  verificarInteres as verificarInteresService
 } from "../services/eventsUsers";
 
+
 export const useEventsUsers = () => {
+  const { getToken, isSignedIn } = useAuth();
+  const { user, isLoaded } = useUser();
+  const [interesado, setInteresado] = useState(false);
+
   const [conteo, setConteo] = useState(0);
   const [eventosOriginales, setEventosOriginales] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -125,11 +132,36 @@ export const useEventsUsers = () => {
     }
   }, []);
 
+  const verificarInteres = useCallback(async (eventoId) => {
+    if (!isLoaded) return;
+    if (!isSignedIn || !user?.id) {
+      setInteresado(false);
+      return;
+    }
+
+    try {
+      const data = await verificarInteresService(
+        eventoId,
+        user.id
+      );
+
+      setInteresado(data.interesado);
+
+    } catch (err) {
+      console.error(err);
+      setInteresado(false);
+    }
+
+  }, [isSignedIn, user, isLoaded]);
+
   const registrarInteres = useCallback(async (eventoId) => {
     try {
       setError(null);
 
-      await registrarInteresService(eventoId); // 🔥 ahora sí correcto
+      if (!user?.id) {
+        throw new Error("Usuario no autenticado");
+      }
+      await registrarInteresService(eventoId, user.id); // 🔥 ahora sí correcto
 
       await fetchConteo(eventoId);
 
@@ -138,7 +170,7 @@ export const useEventsUsers = () => {
       setError(err.message);
       return false;
     }
-  }, [fetchConteo]);
+  }, [fetchConteo, user]);
 
   return {
     // Retornamos los eventos paginados en lugar de todos
@@ -154,6 +186,8 @@ export const useEventsUsers = () => {
     conteo,
     registrarInteres,
     fetchConteo,
+    interesado,
+    verificarInteres,
     // Utils de paginación
     currentPage,
     totalPages,

@@ -7,13 +7,13 @@ const PublicEventDetail = ({ evento, onVolver, onInteres, isInterestedInitial })
 
   // Asegurar que se sincronice si cambia el evento prop
   useEffect(() => {
-    setIsInterested(isInterestedInitial);
+    setIsInterested(isInterestedInitial ?? false);
   }, [isInterestedInitial, evento.id]);
 
   const handleInteresClick = async () => {
     if (isInterested) return; // Validación extra
     setIsProcessing(true);
-    const success = await onInteres(evento.id);
+    const success = await onInteres();
     if (success) {
       setIsInterested(true);
     }
