@@ -126,7 +126,7 @@ export const useEventsUsers = () => {
   const fetchConteo = useCallback(async (eventoId) => {
     try {
       const data = await obtenerConteoIntereses(eventoId);
-      setConteo(data.conteo || 0);
+      setConteo(data.total || 0);
     } catch (err) {
       setError(err.message);
     }
@@ -162,7 +162,7 @@ export const useEventsUsers = () => {
         throw new Error("Usuario no autenticado");
       }
       await registrarInteresService(eventoId, user.id); // 🔥 ahora sí correcto
-
+      setInteresado(true);
       await fetchConteo(eventoId);
 
       return true;
