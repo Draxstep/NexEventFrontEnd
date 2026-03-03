@@ -1,12 +1,20 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useAuth, useUser } from "@clerk/clerk-react";
 import {
   getActiveEvents,
   getActiveEventById,
   registrarInteres as registrarInteresService,
-  obtenerConteoIntereses
+  obtenerConteoIntereses,
+  verificarInteres as verificarInteresService,
+  eliminarInteres as eliminarInteresService
 } from "../services/eventsUsers";
 
+
 export const useEventsUsers = () => {
+  const { getToken, isSignedIn } = useAuth();
+  const { user, isLoaded } = useUser();
+  const [interesado, setInteresado] = useState(false);
+
   const [conteo, setConteo] = useState(0);
   const [eventosOriginales, setEventosOriginales] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -119,18 +127,43 @@ export const useEventsUsers = () => {
   const fetchConteo = useCallback(async (eventoId) => {
     try {
       const data = await obtenerConteoIntereses(eventoId);
-      setConteo(data.conteo || 0);
+      setConteo(data.total || 0);
     } catch (err) {
       setError(err.message);
     }
   }, []);
 
+  const verificarInteres = useCallback(async (eventoId) => {
+    if (!isLoaded) return;
+    if (!isSignedIn || !user?.id) {
+      setInteresado(false);
+      return;
+    }
+
+    try {
+      const data = await verificarInteresService(
+        eventoId,
+        user.id
+      );
+
+      setInteresado(data.interesado);
+
+    } catch (err) {
+      console.error(err);
+      setInteresado(false);
+    }
+
+  }, [isSignedIn, user, isLoaded]);
+
   const registrarInteres = useCallback(async (eventoId) => {
     try {
       setError(null);
 
-      await registrarInteresService(eventoId); // 🔥 ahora sí correcto
-
+      if (!user?.id) {
+        throw new Error("Usuario no autenticado");
+      }
+      await registrarInteresService(eventoId, user.id); // 🔥 ahora sí correcto
+      setInteresado(true);
       await fetchConteo(eventoId);
 
       return true;
@@ -138,7 +171,23 @@ export const useEventsUsers = () => {
       setError(err.message);
       return false;
     }
-  }, [fetchConteo]);
+  }, [fetchConteo, user]);
+
+  const eliminarInteres = useCallback(async (eventoId) => {
+    try {
+      setError(null);
+      if (!user?.id) {
+        throw new Error("Usuario no autenticado");
+      }
+      await eliminarInteresService(eventoId, user.id);
+      setInteresado(false);
+      await fetchConteo(eventoId);
+      return true;
+    } catch (err) {
+      setError(err.message);
+      return false;
+    }
+  }, [user, fetchConteo]);
 
   return {
     // Retornamos los eventos paginados en lugar de todos
@@ -154,6 +203,9 @@ export const useEventsUsers = () => {
     conteo,
     registrarInteres,
     fetchConteo,
+    interesado,
+    verificarInteres,
+    eliminarInteres,
     // Utils de paginación
     currentPage,
     totalPages,

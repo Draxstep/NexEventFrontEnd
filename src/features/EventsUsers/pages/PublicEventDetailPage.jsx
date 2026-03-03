@@ -15,6 +15,9 @@ export default function PublicEventDetailPage() {
     conteo,
     registrarInteres,
     fetchConteo,
+    verificarInteres,
+    interesado,
+    eliminarInteres
   } = useEventsUsers();
 
   const [evento, setEvento] = useState(null);
@@ -42,18 +45,31 @@ export default function PublicEventDetailPage() {
 
       // 🔥 Cargar conteo apenas tengamos el evento
       await fetchConteo(data.id);
+      return data;
 
     } catch (err) {
       setError(err.message);
+      return null;
     } finally {
       setLoading(false);
     }
   }, [id, fetchEventoById, fetchConteo]);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
-    cargarEvento();
-  }, [cargarEvento]);
+
+    const init = async () => {
+      window.scrollTo(0, 0);
+
+      const eventoData = await cargarEvento();
+
+      if (eventoData) {
+        await verificarInteres(eventoData.id);
+      }
+    };
+
+    init();
+
+  }, [cargarEvento, verificarInteres]);
 
   /* =========================
      🔹 TOAST
@@ -77,7 +93,7 @@ export default function PublicEventDetailPage() {
     }
 
     const success = await registrarInteres(evento.id);
-
+    console.log("Success:", success);
     if (success) {
       showToast(
         '¡Gracias por tu interés! Lo hemos registrado.',
@@ -89,8 +105,27 @@ export default function PublicEventDetailPage() {
         'error'
       );
     }
+    return success;
   };
 
+  const handleEliminarInteres = async () => {
+    if (!evento) return;
+
+    const success = await eliminarInteres(evento.id);
+
+    if (success) {
+      showToast(
+        'Tu interés ha sido eliminado.',
+        'success'
+      );
+    } else {
+      showToast(
+        'No se pudo eliminar el interés.',
+        'error'
+      );
+    }
+    return success;
+  };
   /* =========================
      🔹 ESTADOS
   ========================== */
@@ -154,6 +189,8 @@ export default function PublicEventDetailPage() {
         conteoIntereses={conteo}
         onVolver={() => navigate('/eventos')}
         onInteres={handleRegistrarInteres}
+        isInterested={interesado}
+        onEliminarInteres={handleEliminarInteres}
       />
     </div>
   );
