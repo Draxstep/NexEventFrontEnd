@@ -91,7 +91,7 @@ export default function EventReport({ event, onBack }) {
           </div>
         </div>
         <p className="text-blue-100 text-sm sm:text-base">
-          Evento con mayor cantidad de personas interesadas en este mes
+          Evento con mayor cantidad de personas interesadas hasta el momento
         </p>
       </div>
 
