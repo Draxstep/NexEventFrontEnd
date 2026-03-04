@@ -93,7 +93,6 @@ export default function PublicEventDetailPage() {
     }
 
     const success = await registrarInteres(evento.id);
-    console.log("Success:", success);
     if (success) {
       showToast(
         '¡Gracias por tu interés! Lo hemos registrado.',
