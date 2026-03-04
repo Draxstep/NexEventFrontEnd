@@ -162,8 +162,8 @@ export default function EventsManagement() {
 
       <ModalConfirmation
         isOpen={modal.isOpen}
-        title={modal.title}
-        message={modal.message}
+        titulo={modal.title}
+        mensaje={modal.message}
         isDanger={modal.isDanger}
         onConfirm={modal.onConfirm}
         onCancel={closeModal}

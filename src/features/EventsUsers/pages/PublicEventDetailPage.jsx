@@ -3,16 +3,21 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useEventsUsers } from '../hooks/useEventsUsers';
 import PublicEventDetail from '../components/PublicEventDetail';
+import { useClerk } from '@clerk/clerk-react';
 
 export default function PublicEventDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { openSignIn, isSignedIn } = useClerk();
 
   const {
     fetchEventoById,
     conteo,
     registrarInteres,
     fetchConteo,
+    verificarInteres,
+    interesado,
+    eliminarInteres
   } = useEventsUsers();
 
   const [evento, setEvento] = useState(null);
@@ -40,18 +45,31 @@ export default function PublicEventDetailPage() {
 
       // 🔥 Cargar conteo apenas tengamos el evento
       await fetchConteo(data.id);
+      return data;
 
     } catch (err) {
       setError(err.message);
+      return null;
     } finally {
       setLoading(false);
     }
   }, [id, fetchEventoById, fetchConteo]);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
-    cargarEvento();
-  }, [cargarEvento]);
+
+    const init = async () => {
+      window.scrollTo(0, 0);
+
+      const eventoData = await cargarEvento();
+
+      if (eventoData) {
+        await verificarInteres(eventoData.id);
+      }
+    };
+
+    init();
+
+  }, [cargarEvento, verificarInteres]);
 
   /* =========================
      🔹 TOAST
@@ -69,9 +87,13 @@ export default function PublicEventDetailPage() {
   ========================== */
   const handleRegistrarInteres = async () => {
     if (!evento) return;
+    if (!isSignedIn) {
+      openSignIn();
+      return;
+    }
 
     const success = await registrarInteres(evento.id);
-
+    console.log("Success:", success);
     if (success) {
       showToast(
         '¡Gracias por tu interés! Lo hemos registrado.',
@@ -83,8 +105,27 @@ export default function PublicEventDetailPage() {
         'error'
       );
     }
+    return success;
   };
 
+  const handleEliminarInteres = async () => {
+    if (!evento) return;
+
+    const success = await eliminarInteres(evento.id);
+
+    if (success) {
+      showToast(
+        'Tu interés ha sido eliminado.',
+        'success'
+      );
+    } else {
+      showToast(
+        'No se pudo eliminar el interés.',
+        'error'
+      );
+    }
+    return success;
+  };
   /* =========================
      🔹 ESTADOS
   ========================== */
@@ -124,15 +165,14 @@ export default function PublicEventDetailPage() {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
-      
+
       {/* 🔔 Toast */}
       {toast && (
         <div
-          className={`fixed bottom-4 right-4 sm:bottom-8 sm:right-8 text-white px-5 py-4 rounded-xl shadow-2xl flex items-center animate-fade-in z-[200] max-w-[90vw] sm:max-w-md border border-white/20 backdrop-blur-sm ${
-            toast.type === 'error'
+          className={`fixed bottom-4 right-4 sm:bottom-8 sm:right-8 text-white px-5 py-4 rounded-xl shadow-2xl flex items-center animate-fade-in z-[200] max-w-[90vw] sm:max-w-md border border-white/20 backdrop-blur-sm ${toast.type === 'error'
               ? 'bg-red-600/95'
               : 'bg-gray-800/95'
-          }`}
+            }`}
         >
           {toast.type === 'error'
             ? <AlertCircle size={24} className="mr-3 flex-shrink-0" />
@@ -149,6 +189,8 @@ export default function PublicEventDetailPage() {
         conteoIntereses={conteo}
         onVolver={() => navigate('/eventos')}
         onInteres={handleRegistrarInteres}
+        isInterested={interesado}
+        onEliminarInteres={handleEliminarInteres}
       />
     </div>
   );
