@@ -108,21 +108,23 @@ export default function EventsManagement() {
   };
 
   const handleDisable = (event) => {
-    if (event.estado === false) {
-      showToast("This event is already disabled.", "error");
-      return;
-    }
+    const isCurrentlyActive = event.estado !== false;
 
     setModal({
       isOpen: true,
-      title: "Disable Event",
-      message:
-        "WARNING: The event will no longer be visible to users. Do you want to continue?",
-      isDanger: true,
+      title: isCurrentlyActive ? "Disable Event" : "Enable Event",
+      message: isCurrentlyActive
+        ? "WARNING: The event will no longer be visible to users. Do you want to continue?"
+        : "Do you want to re-enable this event so it becomes visible to users again?",
+      isDanger: isCurrentlyActive,
       onConfirm: async () => {
         try {
           await disableEvent(event.id);
-          showToast("Event disabled successfully.");
+          showToast(
+            isCurrentlyActive
+              ? "Event disabled successfully."
+              : "Event enabled successfully."
+          );
         } catch (err) {
           showToast(err.message, "error");
         } finally {
