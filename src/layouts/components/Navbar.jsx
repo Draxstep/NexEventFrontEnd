@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Menu, X, CalendarDays, LogIn, UserPlus } from 'lucide-react';
-import { NavLink } from 'react-router-dom'; 
+import { NavLink } from 'react-router-dom';
 import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton, useUser } from '@clerk/clerk-react';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useUser();
-  
+
   // Verificamos si el usuario tiene rol 'admin' en su public metadata
   const isAdmin = user?.publicMetadata?.role === 'admin';
 
@@ -21,16 +21,15 @@ const Navbar = () => {
 
   const toggleMenu = () => setIsOpen(!isOpen);
   const navLinkClass = ({ isActive }) =>
-    `px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-      isActive
-        ? 'bg-blue-900 text-white' 
-        : 'text-blue-100 hover:text-white hover:bg-blue-600' 
+    `px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive
+      ? 'bg-blue-900 text-white'
+      : 'text-blue-100 hover:text-white hover:bg-blue-600'
     }`;
   return (
     <nav className="bg-blue-700 text-white shadow-md relative z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          
+
           <div className="flex items-center space-x-2 flex-shrink-0">
             <CalendarDays className="h-8 w-8 text-blue-200" />
             <span className="font-bold text-xl tracking-tight truncate">NexEvent</span>
@@ -42,7 +41,14 @@ const Navbar = () => {
                 {link.label}
               </NavLink>
             ))}
-            
+
+            <SignedIn>
+              <NavLink to="/mis-favoritos" className={navLinkClass}>
+                Mis favoritos
+              </NavLink>
+            </SignedIn>
+
+
             {/* Clerk Authentication Buttons - Desktop */}
             <div className="ml-4 pl-4 border-l border-blue-500 flex items-center space-x-3">
               <SignedOut>
@@ -61,7 +67,7 @@ const Navbar = () => {
               </SignedOut>
               <SignedIn>
                 <div className="bg-blue-800 p-1 rounded-full shadow-inner flex items-center justify-center">
-                  <UserButton 
+                  <UserButton
                     appearance={{
                       elements: {
                         avatarBox: "w-8 h-8 border-2 border-transparent hover:border-blue-300 transition-all",
@@ -89,9 +95,8 @@ const Navbar = () => {
 
 
       <div
-        className={`md:hidden absolute w-full bg-blue-800 shadow-lg transition-all duration-300 ease-in-out ${
-          isOpen ? 'max-h-[400px] opacity-100 visible pb-4' : 'max-h-0 opacity-0 invisible'
-        } overflow-hidden`}
+        className={`md:hidden absolute w-full bg-blue-800 shadow-lg transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[400px] opacity-100 visible pb-4' : 'max-h-0 opacity-0 invisible'
+          } overflow-hidden`}
       >
         <div className="px-4 pt-2 pb-3 space-y-1">
           {navLinks.map((link) => (
@@ -100,21 +105,34 @@ const Navbar = () => {
               to={link.path}
               onClick={() => setIsOpen(false)}
               className={({ isActive }) =>
-                `block px-3 py-3 text-base font-medium rounded-md transition-colors ${
-                  isActive ? 'bg-blue-900 text-white' : 'text-blue-100 hover:text-white hover:bg-blue-700'
+                `block px-3 py-3 text-base font-medium rounded-md transition-colors ${isActive ? 'bg-blue-900 text-white' : 'text-blue-100 hover:text-white hover:bg-blue-700'
                 }`
               }
             >
               {link.label}
             </NavLink>
           ))}
-          
+
           {/* Clerk Authentication Buttons - Mobile */}
           <div className="pt-4 mt-2 border-t border-blue-700">
+            <SignedIn>
+              <NavLink
+                to="/mis-favoritos"
+                onClick={() => setIsOpen(false)}
+                className={({ isActive }) =>
+                  `block px-3 py-3 text-base font-medium rounded-md transition-colors ${isActive
+                    ? 'bg-blue-900 text-white'
+                    : 'text-blue-100 hover:text-white hover:bg-blue-700'
+                  }`
+                }
+              >
+                Mis favoritos
+              </NavLink>
+            </SignedIn>
             <SignedOut>
               <div className="flex flex-col space-y-3">
                 <SignInButton mode="modal">
-                  <button 
+                  <button
                     onClick={() => setIsOpen(false)}
                     className="flex justify-center items-center w-full px-4 py-2 border border-blue-400 text-base font-medium rounded-md text-white hover:bg-blue-700 transition-colors"
                   >
@@ -123,7 +141,7 @@ const Navbar = () => {
                   </button>
                 </SignInButton>
                 <SignUpButton mode="modal">
-                  <button 
+                  <button
                     onClick={() => setIsOpen(false)}
                     className="flex justify-center items-center w-full px-4 py-2 text-base font-medium rounded-md text-blue-800 bg-white hover:bg-blue-50 transition-colors shadow-sm"
                   >

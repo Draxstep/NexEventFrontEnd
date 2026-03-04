@@ -6,7 +6,8 @@ import {
   registrarInteres as registrarInteresService,
   obtenerConteoIntereses,
   verificarInteres as verificarInteresService,
-  eliminarInteres as eliminarInteresService
+  eliminarInteres as eliminarInteresService,
+  getEventosByUsuarioId as getEventosByUsuarioIdService
 } from "../services/eventsUsers";
 
 
@@ -22,6 +23,9 @@ export const useEventsUsers = () => {
 
   const [filters, setFilters] = useState({ search: "", categoria: "" });
   const [currentPage, setCurrentPage] = useState(1);
+  const [eventosFavoritos, setEventosFavoritos] = useState([]);
+  const [loadingFavoritos, setLoadingFavoritos] = useState(false);
+  const [errorFavoritos, setErrorFavoritos] = useState(null);
   const ITEMS_PER_PAGE = 6;
 
   const updateFilter = (key, value) => {
@@ -181,6 +185,9 @@ export const useEventsUsers = () => {
       }
       await eliminarInteresService(eventoId, user.id);
       setInteresado(false);
+      setEventosFavoritos(prev =>
+        prev.filter(evento => evento.id !== eventoId)
+      );
       await fetchConteo(eventoId);
       return true;
     } catch (err) {
@@ -188,6 +195,23 @@ export const useEventsUsers = () => {
       return false;
     }
   }, [user, fetchConteo]);
+
+  const fetchEventosFavoritos = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      setLoadingFavoritos(true);
+      setErrorFavoritos(null);
+
+      const data = await getEventosByUsuarioIdService(user.id);
+
+      setEventosFavoritos(data);
+    } catch (err) {
+      setErrorFavoritos("No se pudieron cargar tus favoritos.");
+    } finally {
+      setLoadingFavoritos(false);
+    }
+  }, [user]);
 
   return {
     // Retornamos los eventos paginados en lugar de todos
@@ -206,6 +230,11 @@ export const useEventsUsers = () => {
     interesado,
     verificarInteres,
     eliminarInteres,
+    eventosFavoritos,
+    loadingFavoritos,
+    errorFavoritos,
+    fetchEventosFavoritos,
+
     // Utils de paginación
     currentPage,
     totalPages,

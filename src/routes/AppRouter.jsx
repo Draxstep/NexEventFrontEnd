@@ -4,6 +4,7 @@ import EventsManagment from '../features/EventsAdmin/pages/EventsManagment.jsx';
 import EventReportPage from '../features/EventsAdmin/pages/EventReportPage.jsx';
 import PublicEvents from '../features/EventsUsers/pages/PublicEvents.jsx';
 import PublicEventDetailPage from '../features/EventsUsers/pages/PublicEventDetailPage.jsx';
+import UserFavorites from '../features/EventsUsers/pages/UserFavorites.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
 
 export const router = createBrowserRouter([
@@ -38,6 +39,15 @@ export const router = createBrowserRouter([
           }
         ]
       },
+      {
+        element: <ProtectedRoute />, 
+        children: [
+          {
+            path: 'mis-favoritos',
+            element: <UserFavorites />,
+          }
+        ]
+      }
       
     ],
   },

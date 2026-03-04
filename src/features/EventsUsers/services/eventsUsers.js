@@ -78,3 +78,12 @@ export const eliminarInteres = async (evento_id, usuario_id) => {
 
   return true; 
 };
+
+export const getEventosByUsuarioId = async (usuario_id) => {
+  const response = await fetch(`${API_URL}/intereses/usuario/${usuario_id}/eventos`);
+
+  if (!response.ok) {
+    throw new Error("Error al obtener eventos por usuario");
+  }
+  return response.json();
+};
