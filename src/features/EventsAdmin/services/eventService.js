@@ -126,3 +126,47 @@ export const getCitiesByDepartment = async (departmentId) => {
   if (!response.ok) throw new Error("Failed to fetch cities");
   return response.json();
 };
+
+/* =========================
+   REPORTS
+========================= */
+
+export const getEventWithMostInterest = async () => {
+  // Step 1: Get all events
+  const events = await getAllEvents();
+  if (!events || events.length === 0) {
+    throw new Error("No events found");
+  }
+
+  // Step 2: Fetch interest counts for all events in parallel
+  const interestCounts = await Promise.all(
+    events.map((event) =>
+      getEventInterestCount(event.id)
+        .then((data) => {
+          // Expecting { evento_id, total_interesados }
+          return {
+            id: event.id,
+            totalInteresados: data.total_interesados || 0,
+          };
+        })
+        .catch(() => ({
+          id: event.id,
+          totalInteresados: 0,
+        }))
+    )
+  );
+
+  // Step 3: Find event with most interest
+  const maxInterest = interestCounts.reduce((max, current) =>
+    current.totalInteresados > max.totalInteresados ? current : max
+  );
+
+  // Step 4: Fetch full event details
+  const eventDetails = await getEventById(maxInterest.id);
+
+  // Step 5: Add interest count to event object
+  return {
+    ...eventDetails,
+    cantidadInteresados: maxInterest.totalInteresados,
+  };
+};

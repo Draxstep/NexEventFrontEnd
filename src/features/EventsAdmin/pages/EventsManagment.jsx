@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Plus, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, RefreshCw, CheckCircle2, XCircle, BarChart3 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useEvents } from "../hooks/useEvents";
 
 import EventFilterBar from "../components/EventFilterBar";
@@ -9,6 +10,7 @@ import EventDetail from "../components/EventDetail";
 import ModalConfirmation from "../components/ModalConfirmation";
 
 export default function EventsManagement() {
+  const navigate = useNavigate();
   const {
     events,
     categories,
@@ -193,13 +195,22 @@ export default function EventsManagement() {
               Events Management
             </h2>
 
-            <button
-              onClick={handleNew}
-              className="bg-white text-blue-700 px-4 py-2 rounded-lg flex items-center justify-center font-medium hover:bg-gray-100 transition-colors shadow-sm w-full sm:w-auto"
-            >
-              <Plus size={18} className="mr-2" />
-              Add Event
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              <button
+                onClick={() => navigate("/reportes")}
+                className="bg-amber-500 text-white px-4 py-2 rounded-lg flex items-center justify-center font-medium hover:bg-amber-600 transition-colors shadow-sm w-full sm:w-auto"
+              >
+                <BarChart3 size={18} className="mr-2" />
+                Reportes
+              </button>
+              <button
+                onClick={handleNew}
+                className="bg-white text-blue-700 px-4 py-2 rounded-lg flex items-center justify-center font-medium hover:bg-gray-100 transition-colors shadow-sm w-full sm:w-auto"
+              >
+                <Plus size={18} className="mr-2" />
+                Add Event
+              </button>
+            </div>
           </div>
 
           <EventFilterBar
