@@ -59,7 +59,6 @@ export default function Autocomplete({
           onChange={(e) => {
             setQuery(e.target.value);
             setIsOpen(true);
-            if (creatable) onChange(e.target.value);
           }}
           onFocus={() => setIsOpen(true)}
           disabled={disabled}

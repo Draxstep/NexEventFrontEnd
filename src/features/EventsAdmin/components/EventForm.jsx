@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Save, ArrowLeft, Ban } from "lucide-react";
 import Autocomplete from "./Autocomplete";
+import CreatableAutocomplete from "./CreatableAutocomplete";
 
 const initialForm = {
   nombre: "",
@@ -330,13 +331,13 @@ const EventForm = ({
             <label className="block text-sm font-medium">
               Category *
             </label>
-            <Autocomplete
+            <CreatableAutocomplete
               options={categoryOptions}
               value={formData.categoria_id}
               onChange={(val) =>
                 handleChange("categoria_id", val)
               }
-              placeholder="Select category"
+              placeholder="Select or create a category"
             />
             <ErrorMsg name="categoria_id" />
           </div>
