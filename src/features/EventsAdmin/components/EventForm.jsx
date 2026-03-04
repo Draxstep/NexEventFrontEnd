@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Save, ArrowLeft, Ban } from "lucide-react";
 import Autocomplete from "./Autocomplete";
+import CreatableAutocomplete from "./CreatableAutocomplete";
 
 const initialForm = {
   nombre: "",
@@ -330,13 +331,13 @@ const EventForm = ({
             <label className="block text-sm font-medium">
               Category *
             </label>
-            <Autocomplete
+            <CreatableAutocomplete
               options={categoryOptions}
               value={formData.categoria_id}
               onChange={(val) =>
                 handleChange("categoria_id", val)
               }
-              placeholder="Select category"
+              placeholder="Select or create a category"
             />
             <ErrorMsg name="categoria_id" />
           </div>
@@ -381,7 +382,12 @@ const EventForm = ({
             </div>
             
             {formData.imagen && (
-              <span className="text-xs text-green-600 mt-1 block">Selected file: {formData.imagen.name}</span>
+              <div className="mt-2 w-full flex items-center border border-green-200 rounded-lg p-2 bg-green-50">
+                <div className="h-12 w-12 shrink-0 rounded overflow-hidden">
+                  <img src={URL.createObjectURL(formData.imagen)} alt="New preview" className="h-full w-full object-cover" />
+                </div>
+                <span className="ml-3 text-xs text-green-700 font-medium flex-1">New file selected: {formData.imagen.name}</span>
+              </div>
             )}
             
             <ErrorMsg name="imagen" />

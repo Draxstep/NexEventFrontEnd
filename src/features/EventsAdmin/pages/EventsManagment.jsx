@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Plus, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, RefreshCw, CheckCircle2, XCircle, BarChart3 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useEvents } from "../hooks/useEvents";
 
 import EventFilterBar from "../components/EventFilterBar";
@@ -9,6 +10,7 @@ import EventDetail from "../components/EventDetail";
 import ModalConfirmation from "../components/ModalConfirmation";
 
 export default function EventsManagement() {
+  const navigate = useNavigate();
   const {
     events,
     categories,
@@ -108,21 +110,23 @@ export default function EventsManagement() {
   };
 
   const handleDisable = (event) => {
-    if (event.estado === false) {
-      showToast("This event is already disabled.", "error");
-      return;
-    }
+    const isCurrentlyActive = event.estado !== false;
 
     setModal({
       isOpen: true,
-      title: "Disable Event",
-      message:
-        "WARNING: The event will no longer be visible to users. Do you want to continue?",
-      isDanger: true,
+      title: isCurrentlyActive ? "Disable Event" : "Enable Event",
+      message: isCurrentlyActive
+        ? "WARNING: The event will no longer be visible to users. Do you want to continue?"
+        : "Do you want to re-enable this event so it becomes visible to users again?",
+      isDanger: isCurrentlyActive,
       onConfirm: async () => {
         try {
           await disableEvent(event.id);
-          showToast("Event disabled successfully.");
+          showToast(
+            isCurrentlyActive
+              ? "Event disabled successfully."
+              : "Event enabled successfully."
+          );
         } catch (err) {
           showToast(err.message, "error");
         } finally {
@@ -193,13 +197,22 @@ export default function EventsManagement() {
               Events Management
             </h2>
 
-            <button
-              onClick={handleNew}
-              className="bg-white text-blue-700 px-4 py-2 rounded-lg flex items-center justify-center font-medium hover:bg-gray-100 transition-colors shadow-sm w-full sm:w-auto"
-            >
-              <Plus size={18} className="mr-2" />
-              Add Event
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              <button
+                onClick={() => navigate("/reportes")}
+                className="bg-amber-500 text-white px-4 py-2 rounded-lg flex items-center justify-center font-medium hover:bg-amber-600 transition-colors shadow-sm w-full sm:w-auto"
+              >
+                <BarChart3 size={18} className="mr-2" />
+                Reportes
+              </button>
+              <button
+                onClick={handleNew}
+                className="bg-white text-blue-700 px-4 py-2 rounded-lg flex items-center justify-center font-medium hover:bg-gray-100 transition-colors shadow-sm w-full sm:w-auto"
+              >
+                <Plus size={18} className="mr-2" />
+                Add Event
+              </button>
+            </div>
           </div>
 
           <EventFilterBar
