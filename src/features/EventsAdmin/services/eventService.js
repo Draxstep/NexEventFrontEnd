@@ -131,6 +131,12 @@ export const getCitiesByDepartment = async (departmentId) => {
    REPORTS
 ========================= */
 
+export const getEventInterestCount = async (id) => {
+  const response = await fetch(`${API_URL}/intereses/evento/${id}/conteo`);
+  if (!response.ok) throw new Error("Failed to fetch interest count");
+  return response.json();
+};
+
 export const getEventWithMostInterest = async () => {
   // Step 1: Get all events
   const events = await getAllEvents();
