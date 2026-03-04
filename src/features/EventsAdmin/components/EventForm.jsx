@@ -381,7 +381,12 @@ const EventForm = ({
             </div>
             
             {formData.imagen && (
-              <span className="text-xs text-green-600 mt-1 block">Selected file: {formData.imagen.name}</span>
+              <div className="mt-2 w-full flex items-center border border-green-200 rounded-lg p-2 bg-green-50">
+                <div className="h-12 w-12 shrink-0 rounded overflow-hidden">
+                  <img src={URL.createObjectURL(formData.imagen)} alt="New preview" className="h-full w-full object-cover" />
+                </div>
+                <span className="ml-3 text-xs text-green-700 font-medium flex-1">New file selected: {formData.imagen.name}</span>
+              </div>
             )}
             
             <ErrorMsg name="imagen" />
