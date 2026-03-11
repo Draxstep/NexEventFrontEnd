@@ -52,13 +52,13 @@ const Navbar = () => {
             {/* Clerk Authentication Buttons - Desktop */}
             <div className="ml-4 pl-4 border-l border-blue-500 flex items-center space-x-3">
               <SignedOut>
-                <SignInButton mode="modal" forceRedirectUrl="/auth-callback">
+                <SignInButton mode="modal" forceRedirectUrl="/">
                   <button className="flex items-center space-x-1 text-sm font-medium text-white hover:text-blue-200 transition-colors px-3 py-2">
                     <LogIn size={16} className="mr-1" />
                     <span>Ingresar</span>
                   </button>
                 </SignInButton>
-                <SignUpButton mode="modal" forceRedirectUrl="/auth-callback">
+                <SignUpButton mode="modal" forceRedirectUrl="/">
                   <button className="flex items-center space-x-1 text-sm font-medium bg-white text-blue-700 hover:bg-blue-50 transition-colors px-4 py-2 rounded-full shadow-sm hover:shadow">
                     <UserPlus size={16} className="mr-1" />
                     <span>Registrarse</span>
@@ -131,7 +131,7 @@ const Navbar = () => {
             </SignedIn>
                         <SignedOut>
               <div className="flex flex-col space-y-3">
-                <SignInButton mode="modal" forceRedirectUrl="/auth-callback">
+                <SignInButton mode="modal" forceRedirectUrl="/">
                   <button
                     onClick={() => setIsOpen(false)}
                     className="flex justify-center items-center w-full px-4 py-2 border border-blue-400 text-base font-medium rounded-md text-white hover:bg-blue-700 transition-colors"
@@ -140,7 +140,7 @@ const Navbar = () => {
                     Ingresar
                   </button>
                 </SignInButton>
-                <SignUpButton mode="modal" forceRedirectUrl="/auth-callback">
+                <SignUpButton mode="modal" forceRedirectUrl="/">
                   <button
                     onClick={() => setIsOpen(false)}
                     className="flex justify-center items-center w-full px-4 py-2 text-base font-medium rounded-md text-blue-800 bg-white hover:bg-blue-50 transition-colors shadow-sm"
