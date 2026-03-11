@@ -6,6 +6,7 @@ import PublicEvents from '../features/EventsUsers/pages/PublicEvents.jsx';
 import PublicEventDetailPage from '../features/EventsUsers/pages/PublicEventDetailPage.jsx';
 import UserFavorites from '../features/EventsUsers/pages/UserFavorites.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
+import AuthCallback from './AuthCallback.jsx';
 
 export const router = createBrowserRouter([
   {
@@ -16,6 +17,10 @@ export const router = createBrowserRouter([
       {
         index: true, 
         element: <PublicEvents />,
+      },
+      {
+        path: 'auth-callback',
+        element: <AuthCallback />,
       },
       {
         path: 'eventos',
