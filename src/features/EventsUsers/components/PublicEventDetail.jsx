@@ -67,8 +67,8 @@ const PublicEventDetail = ({ evento, onVolver, onInteres, isInterested, onElimin
               disabled={isProcessing}
               className={`w-full sm:w-auto px-8 py-3.5 rounded-xl flex items-center justify-center font-bold text-base transition-all duration-300 shadow-sm ${
                 isInterested
-                ? 'bg-green-500 text-white hover:bg-green-600 active:scale-95'
-                : 'bg-red-500 text-white hover:bg-red-600 active:scale-95'
+                ? 'bg-gray-400 text-white hover:bg-gray-500 active:scale-95'
+                : 'bg-blue-500 text-white hover:bg-blue-600 active:scale-95'
                 }`}
             >
               {isProcessing ? (
