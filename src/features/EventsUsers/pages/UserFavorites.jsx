@@ -1,11 +1,15 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState} from 'react';
 import { AlertCircle, Trash2 } from 'lucide-react';
 import { useEventsUsers } from '../hooks/useEventsUsers';
 import { useNavigate } from 'react-router-dom';
+import ModalConfirmation from '../../EventsAdmin/components/ModalConfirmation';
 
 export default function UserFavorites() {
 
   const navigate = useNavigate();
+
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState(null);
 
   const {
     eventosFavoritos,
@@ -18,6 +22,24 @@ export default function UserFavorites() {
   useEffect(() => {
     fetchEventosFavoritos();
   }, [fetchEventosFavoritos]);
+
+  const confirmDeletion = (id) => {
+    setEventToDelete(id);
+    setShowConfirmation(true);
+  };
+
+  const cancelDeletion = () => {
+    setEventToDelete(null);
+    setShowConfirmation(false);
+  };
+
+  const executeDeletion = async () => {
+    if (eventToDelete) {
+      await eliminarInteres(eventToDelete);
+      setShowConfirmation(false);
+      setEventToDelete(null);
+    }
+  };
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
@@ -44,7 +66,7 @@ export default function UserFavorites() {
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {eventosFavoritos.map(evento => (
-            
+
             <div
               key={evento.id}
               className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all"
@@ -70,7 +92,7 @@ export default function UserFavorites() {
 
               <div className="px-4 pb-4">
                 <button
-                  onClick={() => eliminarInteres(evento.id)}
+                  onClick={() => confirmDeletion(evento.id)}
                   className="w-full flex items-center justify-center bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-colors"
                 >
                   <Trash2 size={16} className="mr-2" />
@@ -81,6 +103,14 @@ export default function UserFavorites() {
           ))}
         </div>
       )}
+      <ModalConfirmation
+        isOpen={showConfirmation}
+        titulo="Eliminar favorito"
+        mensaje="¿Estás seguro de que deseas quitar este evento de tus favoritos?"
+        onConfirm={executeDeletion}
+        onCancel={cancelDeletion}
+        isDanger={true}
+      />
     </div>
   );
 }
