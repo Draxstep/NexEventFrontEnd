@@ -11,7 +11,7 @@ import EventReport from "../components/EventReport";
  */
 export default function EventReportPage() {
   const navigate = useNavigate();
-  const { event, loading, error, refreshReport } = useEventReport();
+  const { ranking, loading, error, refreshReport } = useEventReport();
 
   const handleBack = () => {
     navigate("/gestion-eventos");
@@ -78,7 +78,7 @@ export default function EventReportPage() {
             </button>
           </div>
         ) : (
-          <EventReport event={event} onBack={handleBack} />
+          <EventReport ranking={ranking} onBack={handleBack} />
         )}
       </div>
     </div>
