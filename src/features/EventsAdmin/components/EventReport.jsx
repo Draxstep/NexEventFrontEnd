@@ -9,6 +9,7 @@ import {
   Clock,
   ArrowRight,
   Sparkles,
+  TrendingUp
 } from "lucide-react";
 
 /**
@@ -16,7 +17,7 @@ import {
  * Componente presentacional para mostrar el evento con más interés
  * Sigue principios de presentación limpia y reutilizable
  */
-export default function EventReport({ event, onBack }) {
+export default function EventReport({ event, events = [], onBack }) {
   if (!event) {
     return (
       <div className="p-8 text-center bg-gray-50 rounded-lg">
@@ -27,11 +28,11 @@ export default function EventReport({ event, onBack }) {
     );
   }
 
+  const restoDelRanking = events && events.length > 0 ? events.slice(1) : [];
   // Cálculo de cantidad de interesados
-  const interestedCount =
-    event.cantidadInteresados !== undefined
-      ? event.cantidadInteresados
-      : 0;
+  const interestedCount = event.total_intereses !== undefined
+      ? event.total_intereses
+      : (event.cantidadInteresados !== undefined ? event.cantidadInteresados : 0);
 
   // Formato de fecha (manejo de string o Date)
   const formatDate = (dateString) => {
@@ -263,6 +264,46 @@ export default function EventReport({ event, onBack }) {
             ></div>
           </div>
         </div>
+
+        {/*Tabla eventos*/}
+        {restoDelRanking.length > 0 && (
+          <div className="mb-8 border border-gray-200 rounded-lg overflow-hidden">
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center">
+              <TrendingUp className="text-blue-600 mr-2" size={24} />
+              <h3 className="text-lg font-bold text-gray-800">Otros eventos en tendencia</h3>
+            </div>
+            
+            <div className="divide-y divide-gray-100 bg-white">
+              {restoDelRanking.map((ev, index) => {
+                const evInteres = ev.total_intereses || ev.cantidadInteresados || 0;
+                return (
+                  <div key={ev.id} className="flex flex-col sm:flex-row sm:items-center p-4 hover:bg-blue-50/50 transition-colors gap-4">
+                    <div className="flex items-center gap-4 flex-1">
+                      <span className={`text-xl font-black w-8 ${
+                        index === 0 ? 'text-slate-400' : // #2 Plata
+                        index === 1 ? 'text-amber-600' : // #3 Bronce
+                        'text-blue-400'                  // #4 en adelante Azul
+                      }`}>
+                        #{index + 2}
+                      </span>
+                      <div>
+                        <h4 className="font-bold text-gray-900">{ev.nombre}</h4>
+                        <div className="flex gap-3 text-sm text-gray-500 mt-1">
+                          <span className="flex items-center gap-1"><Calendar size={14}/> {formatDate(ev.fecha)}</span>
+                          <span className="flex items-center gap-1"><MapPin size={14}/> {ev.Ciudad?.nombre || ev.lugar}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-end sm:justify-start gap-2 bg-rose-50 px-3 py-1.5 rounded-full border border-rose-100">
+                      <Heart size={14} className="text-rose-500" fill="currentColor" />
+                      <span className="font-bold text-rose-700 text-sm">{evInteres} interesados</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Botón volver */}
         <button
