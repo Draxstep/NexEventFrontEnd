@@ -2,7 +2,33 @@ import React from 'react';
 import { Calendar, Clock, MapPin, Tag, DollarSign } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+const buildLocalEventDateTime = (fecha, hora) => {
+  if (!fecha) return null;
+
+  const [year, month, day] = String(fecha).split('-').map(Number);
+  if (!year || !month || !day) return null;
+
+  const [hour, minute, second] = (hora ? String(hora) : '23:59:59').split(':').map(Number);
+
+  return new Date(
+    year,
+    month - 1,
+    day,
+    Number.isFinite(hour) ? hour : 23,
+    Number.isFinite(minute) ? minute : 59,
+    Number.isFinite(second) ? second : 59
+  );
+};
+
+const isPastEvent = (fecha, hora, now = new Date()) => {
+  const eventDateTime = buildLocalEventDateTime(fecha, hora);
+  if (!eventDateTime) return false;
+  return eventDateTime.getTime() < now.getTime();
+};
+
 const EventCard = ({ evento }) => {
+  const past = isPastEvent(evento?.fecha, evento?.hora);
+
   return (
     // Transformamos el Div en un Link navegable hacia el Deep Link
     <Link 
@@ -14,10 +40,16 @@ const EventCard = ({ evento }) => {
           <img 
             src={evento.imagenUrl} 
             alt={`Imagen de ${evento.nombre}`} 
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${past ? 'grayscale' : ''}`}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400">Sin imagen</div>
+        )}
+
+        {past && (
+          <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+            Finalizado
+          </div>
         )}
         <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-blue-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm flex items-center">
           <Tag size={12} className="mr-1" /> {evento.categoria}
