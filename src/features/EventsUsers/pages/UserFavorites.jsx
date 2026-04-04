@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
-import { AlertCircle, Trash2 } from 'lucide-react';
+import { AlertCircle, Heart } from 'lucide-react';
 import { useEventsUsers } from '../hooks/useEventsUsers';
 import { useNavigate } from 'react-router-dom';
+import EventGrid from '../components/EventGrid';
 
 export default function UserFavorites() {
 
@@ -18,6 +19,31 @@ export default function UserFavorites() {
   useEffect(() => {
     fetchEventosFavoritos();
   }, [fetchEventosFavoritos]);
+
+  const eventosAdaptados = eventosFavoritos.map(evento => ({
+    id: evento.id,
+    nombre: evento.nombre,
+    imagenUrl: evento.imagen_url,
+    fecha: evento.fecha,
+    hora: evento.hora || 'Sin hora',
+    lugar: evento.lugar || 'Lugar no especificado',
+    ciudad: evento.ciudad || '',
+    categoria: evento.categoria || 'General',
+    valor: evento.valor || 0,
+    extra: (
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          eliminarInteres(evento.id);
+        }}
+        className="absolute top-3 right-3 z-10 bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-md hover:scale-110 transition-all"
+        title="Quitar de favoritos"
+      >
+        <Heart size={18} className="text-blue-600 fill-blue-600" />
+      </button>
+    )
+  }));
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
@@ -42,44 +68,7 @@ export default function UserFavorites() {
           No tienes eventos favoritos aún.
         </div>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {eventosFavoritos.map(evento => (
-            
-            <div
-              key={evento.id}
-              className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all"
-            >
-              <div
-                onClick={() => navigate(`/eventos/${evento.id}`)}
-                className="cursor-pointer"
-              >
-                <img
-                  src={evento.imagen_url}
-                  alt={evento.nombre}
-                  className="w-full h-48 object-cover"
-                />
-                <div className="p-4">
-                  <h2 className="text-lg font-bold text-gray-900">
-                    {evento.nombre}
-                  </h2>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {evento.fecha}
-                  </p>
-                </div>
-              </div>
-
-              <div className="px-4 pb-4">
-                <button
-                  onClick={() => eliminarInteres(evento.id)}
-                  className="w-full flex items-center justify-center bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-colors"
-                >
-                  <Trash2 size={16} className="mr-2" />
-                  Quitar de favoritos
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+        <EventGrid eventos={eventosAdaptados} />
       )}
     </div>
   );

@@ -19,9 +19,10 @@ const EventCard = ({ evento }) => {
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400">Sin imagen</div>
         )}
-        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-blue-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm flex items-center">
+        <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-blue-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm flex items-center">
           <Tag size={12} className="mr-1" /> {evento.categoria}
         </div>
+        {evento.extra && evento.extra}
       </div>
 
       <div className="p-5 flex flex-col flex-1">
