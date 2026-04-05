@@ -5,8 +5,11 @@ import { ArrowRight, Trophy, Heart } from "lucide-react";
  * Componente EventReport
  * Componente presentacional para mostrar el ranking de los eventos con más interés
  */
-export default function EventReport({ ranking = [], onBack }) {
-  if (!ranking || ranking.length === 0) {
+export default function EventReport({
+  event,
+  onBack,
+}) {
+  if (!event) {
     return (
       <div className="p-8 text-center bg-gray-50 rounded-lg animate-fade-in">
         <p className="text-gray-500 font-medium">
