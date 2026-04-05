@@ -50,7 +50,7 @@ export default function PublicEventDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null);
-  const [blocked, setBlocked] = useState(false);
+  const [isHistorical, setIsHistorical] = useState(false);
 
   /* =========================
       CARGAR EVENTO
@@ -59,7 +59,7 @@ export default function PublicEventDetailPage() {
     try {
       setLoading(true);
       setError(null);
-      setBlocked(false);
+      setIsHistorical(false);
 
       const data = await fetchEventoById(id);
 
@@ -69,12 +69,8 @@ export default function PublicEventDetailPage() {
         );
       }
 
-      // Bloqueo: si el evento ya finalizó, no permitimos ver detalles.
-      if (isPastEvent(data.fecha, data.hora)) {
-        setBlocked(true);
-        setEvento(null);
-        return null;
-      }
+      const historical = isPastEvent(data.fecha, data.hora);
+      setIsHistorical(historical);
 
       setEvento(data);
 
@@ -122,6 +118,12 @@ export default function PublicEventDetailPage() {
   ========================== */
   const handleRegistrarInteres = async () => {
     if (!evento) return;
+
+    if (isHistorical) {
+      showToast('Este evento es histórico y está en modo solo lectura.', 'error');
+      return false;
+    }
+
     if (!isSignedIn) {
       openSignIn();
       return;
@@ -144,6 +146,11 @@ export default function PublicEventDetailPage() {
 
   const handleEliminarInteres = async () => {
     if (!evento) return;
+
+    if (isHistorical) {
+      showToast('Este evento es histórico y está en modo solo lectura.', 'error');
+      return false;
+    }
 
     const success = await eliminarInteres(evento.id);
 
@@ -238,6 +245,12 @@ export default function PublicEventDetailPage() {
         </div>
       )}
 
+      {isHistorical && (
+        <div className="mb-6 bg-amber-50 border border-amber-200 text-amber-900 px-5 py-4 rounded-xl">
+          <p className="font-bold">Evento histórico — Solo lectura</p>
+        </div>
+      )}
+
       <PublicEventDetail
         evento={evento}
         conteoIntereses={conteo}
@@ -245,6 +258,7 @@ export default function PublicEventDetailPage() {
         onInteres={handleRegistrarInteres}
         isInterested={interesado}
         onEliminarInteres={handleEliminarInteres}
+        readOnly={isHistorical}
       />
     </div>
   );

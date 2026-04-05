@@ -29,13 +29,10 @@ const isPastEvent = (fecha, hora, now = new Date()) => {
 const EventCard = ({ evento }) => {
   const past = isPastEvent(evento?.fecha, evento?.hora);
 
-  const Wrapper = past ? 'div' : Link;
-  const wrapperProps = past ? {} : { to: `/eventos/${evento.id}` };
-
   return (
-    <Wrapper
-      {...wrapperProps}
-      className={`bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col h-full animate-fade-in group block ${past ? 'cursor-default' : ''}`}
+    <Link
+      to={`/eventos/${evento.id}`}
+      className="bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col h-full animate-fade-in group block"
     >
       <div className="relative w-full aspect-video overflow-hidden bg-gray-100">
         {evento.imagenUrl ? (
