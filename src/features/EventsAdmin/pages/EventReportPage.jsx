@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { RefreshCw, ArrowLeft } from "lucide-react";
-import { getAllEvents, getEventById } from "../services/eventService";
+import { getAllEvents } from "../services/eventService";
 import { getSalesReportByEvent } from "../services/salesReportService";
 import SoldTicketsByTypeTable from "../components/SoldTicketsByTypeTable";
 
 /**
  * EventReportPage
- * Página contenedora para mostrar reportes de ventas por evento.
+ * Reporte de ventas por evento (master–detail).
  */
 export default function EventReportPage() {
   const navigate = useNavigate();
@@ -44,76 +44,6 @@ export default function EventReportPage() {
       0
     );
     return { totalRevenue, totalSold };
-  }, []);
-
-  const buildTicketTypeMap = useCallback((eventData) => {
-    if (!eventData || typeof eventData !== "object") return new Map();
-
-    const candidates = [
-      eventData?.tipos_entrada,
-      eventData?.tiposEntrada,
-      eventData?.tiposEntradas,
-      eventData?.tiposDeEntrada,
-      eventData?.ticketTypes,
-      eventData?.ticket_types,
-      eventData?.entradas,
-      eventData?.boletos,
-      eventData?.tipos,
-    ];
-
-    const list = candidates.find((c) => Array.isArray(c)) || [];
-    const map = new Map();
-    list.forEach((t) => {
-      if (!t) return;
-      const id =
-        Number(t?.id) ||
-        Number(t?.tipo_entrada_id) ||
-        Number(t?.id_tipo_entrada) ||
-        Number(t?.tipoId) ||
-        Number(t?.tipo_id) ||
-        Number(t?.tipo_entrada?.id) ||
-        Number(t?.tipoEntradaId) ||
-        Number(t?.ticket_type_id) ||
-        Number(t?.ticketTypeId);
-
-      const name =
-        t?.nombre ||
-        t?.name ||
-        t?.tipo ||
-        t?.descripcion ||
-        t?.label ||
-        t?.nombre_tipo;
-
-      if (Number.isFinite(id) && typeof name === "string" && name.trim()) {
-        map.set(id, name);
-      }
-    });
-
-    return map;
-  }, []);
-
-  const enrichSalesWithTypeName = useCallback((ventas, typeMap) => {
-    if (!Array.isArray(ventas) || !(typeMap instanceof Map)) return ventas;
-
-    return ventas.map((v) => {
-      const typeId =
-        Number(v?.tipo_entrada_id) ||
-        Number(v?.tipoEntradaId) ||
-        Number(v?.ticket_type_id) ||
-        Number(v?.ticketTypeId) ||
-        Number(v?.id_tipo_entrada) ||
-        Number(v?.tipo_id) ||
-        Number(v?.tipoId) ||
-        Number(v?.tipo_entrada) ||
-        Number(v?.tipo) ||
-        Number(v?.tipo_entrada?.id) ||
-        Number(v?.tipoEntrada?.id) ||
-        Number(v?.ticketType?.id);
-
-      const typeName = Number.isFinite(typeId) ? typeMap.get(typeId) : null;
-      if (!typeName) return v;
-      return { ...v, tipo_entrada_nombre: typeName };
-    });
   }, []);
 
   const loadEventsAndTotals = useCallback(async () => {
@@ -182,42 +112,7 @@ export default function EventReportPage() {
 
       try {
         const cached = reportsCacheRef.current.get(normalizedId);
-        const baseReport =
-          cached ?? (await getSalesReportByEvent(normalizedId));
-
-        const baseEventData = baseReport?.evento;
-        const eventData =
-          baseEventData && typeof baseEventData === "object"
-            ? baseEventData
-            : await getEventById(normalizedId);
-
-        const reportTypeMap = buildTicketTypeMap(baseReport);
-        const eventTypeMap = buildTicketTypeMap(eventData);
-        const typeMap = reportTypeMap.size > 0 ? reportTypeMap : eventTypeMap;
-        const ventas = Array.isArray(baseReport?.ventas)
-          ? baseReport.ventas
-          : [];
-        const enrichedVentas = enrichSalesWithTypeName(ventas, typeMap);
-
-        if (import.meta.env.DEV) {
-          const hasNames = enrichedVentas.some(
-            (v) => typeof v?.tipo_entrada_nombre === "string" && v.tipo_entrada_nombre.trim()
-          );
-          if (!hasNames) {
-            console.debug("[sales-report] No type names mapped", {
-              reportKeys: Object.keys(baseReport || {}),
-              eventoKeys: Object.keys(eventData || {}),
-              ventasSample: ventas[0],
-            });
-          }
-        }
-
-        const report = {
-          ...baseReport,
-          evento: eventData ?? baseReport?.evento,
-          ventas: enrichedVentas,
-        };
-
+        const report = cached ?? (await getSalesReportByEvent(normalizedId));
         reportsCacheRef.current.set(normalizedId, report);
         setDetailReport(report);
 
@@ -241,7 +136,7 @@ export default function EventReportPage() {
         setDetailLoading(false);
       }
     },
-    [buildTicketTypeMap, computeTotals, enrichSalesWithTypeName]
+    [computeTotals]
   );
 
   const selectedEvent = useMemo(
@@ -401,12 +296,6 @@ export default function EventReportPage() {
                     {selectedEvent
                       ? selectedEvent.nombre
                       : "Selecciona un evento"}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-gray-500">Total ganancia</p>
-                  <p className="text-sm font-bold text-green-700">
-                    {formatCOP(detailTotals.totalRevenue)}
                   </p>
                 </div>
               </div>

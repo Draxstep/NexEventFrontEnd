@@ -33,8 +33,8 @@ export default function SoldTicketsByTypeTable({
   const getTypeLabel = (item, idx) => {
     const candidates = [
       item?.TipoEntrada?.nombre,
-      item?.TipoEntrada?.name,
       item?.tipoEntrada?.nombre,
+      item?.TipoEntrada?.name,
       item?.tipoEntrada?.name,
       item?.nombre_tipo_entrada,
       item?.tipo_entrada_nombre,
@@ -99,55 +99,56 @@ export default function SoldTicketsByTypeTable({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-              Tipo
-            </th>
-            <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">
-              Vendidas
-            </th>
-            <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">
-              Ingresos
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-100">
-          {normalizedItems.map((item, idx) => {
-            const name = getTypeLabel(item, idx);
+    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      {/* #97: fila/resumen de totales del evento */}
+      <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between gap-4">
+        <p className="text-sm text-gray-700">
+          <span className="font-semibold">Total entradas vendidas:</span> {totals.totalSold}
+        </p>
+        <p className="text-sm text-gray-700">
+          <span className="font-semibold">Total ganancia:</span>{" "}
+          <span className="font-bold text-green-700">{formatCOP(totals.totalRevenue)}</span>
+        </p>
+      </div>
 
-            const sold = Number(item?.cantidad_vendida) || 0;
-            const revenue = Number.parseFloat(item?.ganancia) || 0;
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-white">
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                Tipo
+              </th>
+              <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">
+                Vendidas
+              </th>
+              <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">
+                Ingresos
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-100">
+            {normalizedItems.map((item, idx) => {
+              const name = getTypeLabel(item, idx);
+              const sold = Number(item?.cantidad_vendida) || 0;
+              const revenue = Number.parseFloat(item?.ganancia) || 0;
 
-            return (
-              <tr key={`${name}-${idx}`} className="hover:bg-gray-50">
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                  {name}
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                  {sold}
-                </td>
-                <td className="px-4 py-3 text-sm font-semibold text-green-700 text-right">
-                  {formatCOP(revenue)}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-        <tfoot className="bg-gray-50 border-t border-gray-200">
-          <tr>
-            <td className="px-4 py-3 text-sm font-bold text-gray-900">Total</td>
-            <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right">
-              {totals.totalSold}
-            </td>
-            <td className="px-4 py-3 text-sm font-bold text-green-700 text-right">
-              {formatCOP(totals.totalRevenue)}
-            </td>
-          </tr>
-        </tfoot>
-      </table>
+              return (
+                <tr key={`${name}-${idx}`} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                    {name}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-900 text-right">
+                    {sold}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-semibold text-green-700 text-right">
+                    {formatCOP(revenue)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
