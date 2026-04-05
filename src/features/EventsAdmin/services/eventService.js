@@ -187,3 +187,9 @@ export const getEventWithMostInterest = async () => {
     cantidadInteresados: maxInterest.totalInteresados,
   };
 };
+
+export const getTicketTypes = async () => {
+  const response = await fetch(`${API_URL}/tipos-entrada`);
+  if (!response.ok) throw new Error("Failed to fetch ticket types");
+  return response.json();
+};
