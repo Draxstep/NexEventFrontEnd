@@ -80,10 +80,12 @@ const EventCard = ({ evento }) => {
             <DollarSign size={18} className="mr-0.5" />
             <span>{evento.valor > 0 ? evento.valor.toLocaleString('es-CO') : 'Gratis'}</span>
           </div>
-          <span className="text-sm text-blue-600 font-medium group-hover:underline">Ver detalle</span>
+          <span className={`text-sm font-medium ${past ? 'text-gray-500' : 'text-blue-600 group-hover:underline'}`}>
+            {past ? 'Detalles no disponibles' : 'Ver detalle'}
+          </span>
         </div>
       </div>
-    </Link>
+    </Wrapper>
   );
 };
 

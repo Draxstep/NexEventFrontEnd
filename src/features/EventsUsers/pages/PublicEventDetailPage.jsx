@@ -183,6 +183,26 @@ export default function PublicEventDetailPage() {
   }
 
   if (error || !evento) {
+    if (blocked) {
+      return (
+        <div className="w-full max-w-3xl mx-auto mt-12 px-4">
+          <div className="bg-gray-50 border border-gray-200 p-8 rounded-xl text-center text-gray-700 animate-fade-in">
+            <AlertCircle size={40} className="mx-auto mb-4 opacity-80" />
+            <h2 className="text-2xl font-bold mb-2">Evento finalizado</h2>
+            <p className="text-lg mb-6">
+              Este evento ya finalizó y sus detalles no están disponibles.
+            </p>
+            <button
+              onClick={() => navigate('/eventos')}
+              className="bg-gray-800 text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-900 transition-colors"
+            >
+              Volver a la cartelera
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="w-full max-w-3xl mx-auto mt-12 px-4">
         <div className="bg-red-50 border border-red-200 p-8 rounded-xl text-center text-red-700 animate-fade-in">
