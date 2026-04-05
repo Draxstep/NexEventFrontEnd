@@ -27,7 +27,6 @@ export default function PublicEvents() {
     const fetchTopEvents = async () => {
       try {
         const data = await getTopSellingEvents();
-        // ✅ Adaptamos imagen_url → imagenUrl que es lo que usa EventCard
         const adapted = (data || []).map((event) => ({
           id: event.id,
           nombre: event.nombre,
