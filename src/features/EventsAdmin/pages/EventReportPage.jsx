@@ -22,6 +22,7 @@ export default function EventReportPage() {
 
   const [totalsByEventId, setTotalsByEventId] = useState({});
   const reportsCacheRef = useRef(new Map());
+  const { ranking, loading, error, refreshReport } = useEventReport();
 
   const handleBack = () => {
     navigate("/gestion-eventos");
@@ -381,6 +382,7 @@ export default function EventReportPage() {
               </div>
             </div>
           </div>
+          <EventReport ranking={ranking} onBack={handleBack} />
         )}
       </div>
     </div>

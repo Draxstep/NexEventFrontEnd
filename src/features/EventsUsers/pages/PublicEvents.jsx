@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEventsUsers } from '../hooks/useEventsUsers';
+import { getTopSellingEvents } from '../services/eventsUsers';
 import EventGrid from '../components/EventGrid';
 import PublicEventFilterBar from '../components/PublicEventFilterBar';
+import TopSellingEvents from '../components/TopSellingEvents';
 
 export default function PublicEvents() {
   const { 
     eventos, 
+    eventosHistoricos,
     loading, 
     error, 
     filters, 
@@ -17,6 +20,37 @@ export default function PublicEvents() {
     totalPages,
     goToPage
   } = useEventsUsers();
+
+  const [topEvents, setTopEvents] = useState([]);
+  const [loadingTop, setLoadingTop] = useState(true);
+
+  useEffect(() => {
+    const fetchTopEvents = async () => {
+      try {
+        const data = await getTopSellingEvents();
+        const adapted = (data || []).map((event) => ({
+          id: event.id,
+          nombre: event.nombre,
+          fecha: event.fecha,
+          hora: event.hora,
+          departamento: event.Ciudad?.Departamento?.nombre || "",
+          ciudad: event.Ciudad?.nombre || "",
+          lugar: event.lugar,
+          categoria: event.Categorium?.nombre || event.Categoria?.nombre || event.categoria?.nombre || "",
+          descripcion: event.descripcion,
+          valor: event.valor,
+          estado: event.estado,
+          imagenUrl: event.imagen_url,
+        }));
+        setTopEvents(adapted);
+      } catch (err) {
+        console.error("Error al obtener los eventos populares:", err);
+      } finally {
+        setLoadingTop(false);
+      }
+    };
+    fetchTopEvents();
+  }, []);
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative min-h-screen flex flex-col">
@@ -31,6 +65,9 @@ export default function PublicEvents() {
           Selecciona un evento para conocer más detalles.
         </p>
       </div>
+
+      {/* Top Eventos Populares — #70: pasa isLoading para skeleton */}
+      <TopSellingEvents events={topEvents} isLoading={loadingTop} />
 
       {/* Barra de Filtros */}
       {!loading && !error && (
@@ -56,7 +93,7 @@ export default function PublicEvents() {
             <AlertCircle size={40} className="mx-auto mb-4 opacity-80" />
             <p className="text-lg font-bold">{error}</p>
           </div>
-        ) : eventos.length === 0 ? (
+        ) : eventos.length === 0 && (!eventosHistoricos || eventosHistoricos.length === 0) ? (
           <div className="text-center py-20 text-gray-500 flex-1 flex flex-col justify-center">
             <p className="text-lg font-medium">
               No hay eventos disponibles en este momento.
@@ -64,10 +101,19 @@ export default function PublicEvents() {
           </div>
         ) : (
           <>
-            <EventGrid eventos={eventos} />
+            {/* Próximos */}
+            {eventos.length > 0 ? (
+              <EventGrid eventos={eventos} />
+            ) : (
+              <div className="text-center py-14 text-gray-500">
+                <p className="text-lg font-medium">
+                  No hay eventos próximos en este momento.
+                </p>
+              </div>
+            )}
             
             {/* Controles de paginación UI */}
-            {totalPages > 1 && (
+            {eventos.length > 0 && totalPages > 1 && (
               <div className="mt-12 mb-8 flex justify-center items-center space-x-2 animate-fade-in">
                 <button
                   onClick={() => goToPage(currentPage - 1)}
@@ -81,7 +127,6 @@ export default function PublicEvents() {
                 <div className="flex space-x-1">
                   {[...Array(totalPages)].map((_, i) => {
                     const page = i + 1;
-                    // Mostrar solo páginas iniciales, finales y cercanas a la actual para no saturar si hay muchas
                     if (
                       page === 1 || 
                       page === totalPages || 
@@ -118,6 +163,19 @@ export default function PublicEvents() {
                 >
                   <ChevronRight size={20} />
                 </button>
+              </div>
+            )}
+
+            {/* Históricos */}
+            {eventosHistoricos && eventosHistoricos.length > 0 && (
+              <div className="mt-10 pt-10 border-t border-gray-100">
+                <div className="mb-6 text-center sm:text-left">
+                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 mb-2">
+                    Eventos históricos
+                  </h2>
+                </div>
+
+                <EventGrid eventos={eventosHistoricos} />
               </div>
             )}
           </>
