@@ -52,6 +52,48 @@ const isPastEvent = (fecha, hora, now = new Date()) => {
 };
 
 
+const buildLocalEventDateTime = (fecha, hora) => {
+  if (!fecha || typeof fecha !== "string") return null;
+
+  const dateParts = fecha.split("-").map((p) => Number.parseInt(p, 10));
+  if (dateParts.length !== 3 || dateParts.some((n) => Number.isNaN(n))) return null;
+
+  const [year, month, day] = dateParts;
+
+  // Si no hay hora, asumimos fin de día para no marcar como finalizado antes de tiempo.
+  let hour = 23;
+  let minute = 59;
+  let second = 59;
+
+  if (hora && typeof hora === "string") {
+    const timeParts = hora
+      .trim()
+      .split(":")
+      .map((p) => Number.parseInt(p, 10));
+
+    if (
+      timeParts.length >= 2 &&
+      timeParts.length <= 3 &&
+      !timeParts.some((n) => Number.isNaN(n))
+    ) {
+      hour = timeParts[0];
+      minute = timeParts[1];
+      second = timeParts[2] ?? 0;
+    }
+  }
+
+  const d = new Date(year, month - 1, day, hour, minute, second, 0);
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+};
+
+const isPastEvent = (fecha, hora, now = new Date()) => {
+  const eventDateTime = buildLocalEventDateTime(fecha, hora);
+  if (!eventDateTime) return false;
+  return eventDateTime.getTime() < now.getTime();
+};
+
+
 export const useEventsUsers = () => {
   const { getToken, isSignedIn } = useAuth();
   const { user, isLoaded } = useUser();
@@ -105,7 +147,7 @@ export const useEventsUsers = () => {
 
   // 🔹 Aplicar filtros
   const eventosFiltrados = useMemo(() => {
-    return eventosOriginales.filter((e) => {
+    const filtered = eventosOriginales.filter((e) => {
       const term = filters.search.toLowerCase();
 
       const matchSearch =
@@ -118,6 +160,27 @@ export const useEventsUsers = () => {
         : true;
 
       return matchSearch && matchCategoria;
+    });
+
+    // Orden UX: próximos primero (fecha asc). Finalizados al final.
+    // Para finalizados, se muestran del más reciente al más antiguo.
+    const now = new Date();
+    return [...filtered].sort((a, b) => {
+      const aPast = isPastEvent(a.fecha, a.hora, now);
+      const bPast = isPastEvent(b.fecha, b.hora, now);
+
+      if (aPast !== bPast) return aPast ? 1 : -1;
+
+      const aDt = buildLocalEventDateTime(a.fecha, a.hora);
+      const bDt = buildLocalEventDateTime(b.fecha, b.hora);
+
+      if (!aDt && !bDt) return 0;
+      if (!aDt) return 1;
+      if (!bDt) return -1;
+
+      // Ambos próximos: asc. Ambos finalizados: desc.
+      const diff = aDt.getTime() - bDt.getTime();
+      return aPast ? -diff : diff;
     });
   }, [eventosOriginales, filters]);
 
