@@ -8,6 +8,7 @@ import {
   createEvent,
   updateEvent,
   toggleEventStatus,
+  getTicketTypes
 } from "../services/eventService";
 
 export const useEvents = () => {
@@ -15,6 +16,7 @@ export const useEvents = () => {
   const [categories, setCategories] = useState([]);
   const [cities, setCities] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [ticketTypes, setTicketTypes] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -41,15 +43,18 @@ export const useEvents = () => {
         eventsData,
         categoriesData,
         departmentsData,
+        ticketTypeData,
       ] = await Promise.all([
         getAllEvents(),
         getAllCategories(),
         getAllDepartments(),
+        getTicketTypes(),
       ]);
 
       setEvents(eventsData);
       setCategories(categoriesData);
       setDepartments(departmentsData);
+      setTicketTypes(ticketTypeData);
 
     } catch (err) {
       console.error(err);
@@ -198,6 +203,7 @@ export const useEvents = () => {
     categories,
     cities,
     departments,
+    ticketTypes,
     loading,
     error,
     filters,
