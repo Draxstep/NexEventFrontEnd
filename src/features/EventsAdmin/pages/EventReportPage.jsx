@@ -202,7 +202,7 @@ export default function EventReportPage() {
           <div className="bg-white rounded-lg shadow-md border border-red-200 p-8 text-center animate-fade-in">
             <div className="inline-block bg-red-100 rounded-full p-3 mb-4">
               <div className="w-8 h-8 text-red-600 flex items-center justify-center">
-                ⚠️
+                
               </div>
             </div>
             <p className="text-red-600 font-semibold text-lg mb-2">

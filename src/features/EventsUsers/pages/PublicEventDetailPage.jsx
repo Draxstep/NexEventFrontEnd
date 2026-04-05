@@ -5,6 +5,32 @@ import { useEventsUsers } from '../hooks/useEventsUsers';
 import PublicEventDetail from '../components/PublicEventDetail';
 import { useClerk } from '@clerk/clerk-react';
 
+const buildLocalEventDateTime = (fecha, hora) => {
+  if (!fecha) return null;
+
+  const [year, month, day] = String(fecha).split('-').map(Number);
+  if (!year || !month || !day) return null;
+
+  const [hour, minute, second] = (hora ? String(hora) : '23:59:59').split(':').map(Number);
+
+  const d = new Date(
+    year,
+    month - 1,
+    day,
+    Number.isFinite(hour) ? hour : 23,
+    Number.isFinite(minute) ? minute : 59,
+    Number.isFinite(second) ? second : 59
+  );
+
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+const isPastEvent = (fecha, hora, now = new Date()) => {
+  const dt = buildLocalEventDateTime(fecha, hora);
+  if (!dt) return false;
+  return dt.getTime() < now.getTime();
+};
+
 export default function PublicEventDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -24,14 +50,16 @@ export default function PublicEventDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null);
+  const [isHistorical, setIsHistorical] = useState(false);
 
   /* =========================
-     🔹 CARGAR EVENTO
+      CARGAR EVENTO
   ========================== */
   const cargarEvento = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
+      setIsHistorical(false);
 
       const data = await fetchEventoById(id);
 
@@ -41,9 +69,12 @@ export default function PublicEventDetailPage() {
         );
       }
 
+      const historical = isPastEvent(data.fecha, data.hora);
+      setIsHistorical(historical);
+
       setEvento(data);
 
-      // 🔥 Cargar conteo apenas tengamos el evento
+      // Cargar conteo apenas tengamos el evento
       await fetchConteo(data.id);
       return data;
 
@@ -72,7 +103,7 @@ export default function PublicEventDetailPage() {
   }, [cargarEvento, verificarInteres]);
 
   /* =========================
-     🔹 TOAST
+      TOAST
   ========================== */
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -83,10 +114,16 @@ export default function PublicEventDetailPage() {
   };
 
   /* =========================
-     🔹 REGISTRAR INTERÉS
+      REGISTRAR INTERÉS
   ========================== */
   const handleRegistrarInteres = async () => {
     if (!evento) return;
+
+    if (isHistorical) {
+      showToast('Este evento es histórico y está en modo solo lectura.', 'error');
+      return false;
+    }
+
     if (!isSignedIn) {
       openSignIn();
       return;
@@ -110,6 +147,11 @@ export default function PublicEventDetailPage() {
   const handleEliminarInteres = async () => {
     if (!evento) return;
 
+    if (isHistorical) {
+      showToast('Este evento es histórico y está en modo solo lectura.', 'error');
+      return false;
+    }
+
     const success = await eliminarInteres(evento.id);
 
     if (success) {
@@ -126,7 +168,7 @@ export default function PublicEventDetailPage() {
     return success;
   };
   /* =========================
-     🔹 ESTADOS
+      ESTADOS
   ========================== */
 
   if (loading) {
@@ -141,6 +183,26 @@ export default function PublicEventDetailPage() {
   }
 
   if (error || !evento) {
+    if (blocked) {
+      return (
+        <div className="w-full max-w-3xl mx-auto mt-12 px-4">
+          <div className="bg-gray-50 border border-gray-200 p-8 rounded-xl text-center text-gray-700 animate-fade-in">
+            <AlertCircle size={40} className="mx-auto mb-4 opacity-80" />
+            <h2 className="text-2xl font-bold mb-2">Evento finalizado</h2>
+            <p className="text-lg mb-6">
+              Este evento ya finalizó y sus detalles no están disponibles.
+            </p>
+            <button
+              onClick={() => navigate('/eventos')}
+              className="bg-gray-800 text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-900 transition-colors"
+            >
+              Volver a la cartelera
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="w-full max-w-3xl mx-auto mt-12 px-4">
         <div className="bg-red-50 border border-red-200 p-8 rounded-xl text-center text-red-700 animate-fade-in">
@@ -165,7 +227,7 @@ export default function PublicEventDetailPage() {
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
 
-      {/* 🔔 Toast */}
+      {/* Toast */}
       {toast && (
         <div
           className={`fixed bottom-4 right-4 sm:bottom-8 sm:right-8 text-white px-5 py-4 rounded-xl shadow-2xl flex items-center animate-fade-in z-[200] max-w-[90vw] sm:max-w-md border border-white/20 backdrop-blur-sm ${toast.type === 'error'
@@ -183,6 +245,12 @@ export default function PublicEventDetailPage() {
         </div>
       )}
 
+      {isHistorical && (
+        <div className="mb-6 bg-amber-50 border border-amber-200 text-amber-900 px-5 py-4 rounded-xl">
+          <p className="font-bold">Evento histórico — Solo lectura</p>
+        </div>
+      )}
+
       <PublicEventDetail
         evento={evento}
         conteoIntereses={conteo}
@@ -190,6 +258,7 @@ export default function PublicEventDetailPage() {
         onInteres={handleRegistrarInteres}
         isInterested={interesado}
         onEliminarInteres={handleEliminarInteres}
+        readOnly={isHistorical}
       />
     </div>
   );
