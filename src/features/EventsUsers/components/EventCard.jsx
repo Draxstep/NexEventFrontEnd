@@ -80,7 +80,7 @@ const EventCard = ({ evento }) => {
           </span>
         </div>
       </div>
-    </Wrapper>
+    </Link>
   );
 };
 
