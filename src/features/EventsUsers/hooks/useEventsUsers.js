@@ -10,6 +10,47 @@ import {
   getEventosByUsuarioId as getEventosByUsuarioIdService
 } from "../services/eventsUsers";
 
+const buildLocalEventDateTime = (fecha, hora) => {
+  if (!fecha || typeof fecha !== "string") return null;
+
+  const dateParts = fecha.split("-").map((p) => Number.parseInt(p, 10));
+  if (dateParts.length !== 3 || dateParts.some((n) => Number.isNaN(n))) return null;
+
+  const [year, month, day] = dateParts;
+
+  // Si no hay hora, asumimos fin de día para no marcar como finalizado antes de tiempo.
+  let hour = 23;
+  let minute = 59;
+  let second = 59;
+
+  if (hora && typeof hora === "string") {
+    const timeParts = hora
+      .trim()
+      .split(":")
+      .map((p) => Number.parseInt(p, 10));
+
+    if (
+      timeParts.length >= 2 &&
+      timeParts.length <= 3 &&
+      !timeParts.some((n) => Number.isNaN(n))
+    ) {
+      hour = timeParts[0];
+      minute = timeParts[1];
+      second = timeParts[2] ?? 0;
+    }
+  }
+
+  const d = new Date(year, month - 1, day, hour, minute, second, 0);
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+};
+
+const isPastEvent = (fecha, hora, now = new Date()) => {
+  const dt = buildLocalEventDateTime(fecha, hora);
+  if (!dt) return false;
+  return dt.getTime() < now.getTime();
+};
+
 
 const buildLocalEventDateTime = (fecha, hora) => {
   if (!fecha || typeof fecha !== "string") return null;
@@ -143,13 +184,49 @@ export const useEventsUsers = () => {
     });
   }, [eventosOriginales, filters]);
 
-  // 🔹 Paginación en memoria
+  // 🔹 Separar + ordenar: Próximos primero (asc), Históricos después (desc)
+  const { upcomingEvents, historicalEvents } = useMemo(() => {
+    const now = new Date();
+
+    const upcoming = [];
+    const historical = [];
+
+    for (const e of eventosFiltrados) {
+      if (isPastEvent(e.fecha, e.hora, now)) historical.push(e);
+      else upcoming.push(e);
+    }
+
+    const sortAsc = (a, b) => {
+      const aDt = buildLocalEventDateTime(a.fecha, a.hora);
+      const bDt = buildLocalEventDateTime(b.fecha, b.hora);
+      if (!aDt && !bDt) return 0;
+      if (!aDt) return 1;
+      if (!bDt) return -1;
+      return aDt.getTime() - bDt.getTime();
+    };
+
+    const sortDesc = (a, b) => {
+      const aDt = buildLocalEventDateTime(a.fecha, a.hora);
+      const bDt = buildLocalEventDateTime(b.fecha, b.hora);
+      if (!aDt && !bDt) return 0;
+      if (!aDt) return 1;
+      if (!bDt) return -1;
+      return bDt.getTime() - aDt.getTime();
+    };
+
+    return {
+      upcomingEvents: [...upcoming].sort(sortAsc),
+      historicalEvents: [...historical].sort(sortDesc),
+    };
+  }, [eventosFiltrados]);
+
+  // 🔹 Paginación (solo Próximos)
   const paginatedEvents = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return eventosFiltrados.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [eventosFiltrados, currentPage]);
+    return upcomingEvents.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [upcomingEvents, currentPage]);
 
-  const totalPages = Math.ceil(eventosFiltrados.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(upcomingEvents.length / ITEMS_PER_PAGE);
 
   const goToPage = (pageNumber) => {
     setCurrentPage(Math.max(1, Math.min(pageNumber, totalPages)));
@@ -279,6 +356,7 @@ export const useEventsUsers = () => {
   return {
     // Retornamos los eventos paginados en lugar de todos
     eventos: paginatedEvents,
+    eventosHistoricos: historicalEvents,
     loading,
     error,
     filters,

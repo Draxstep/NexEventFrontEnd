@@ -9,6 +9,7 @@ import TopSellingEvents from '../components/TopSellingEvents';
 export default function PublicEvents() {
   const { 
     eventos, 
+    eventosHistoricos,
     loading, 
     error, 
     filters, 
@@ -92,7 +93,7 @@ export default function PublicEvents() {
             <AlertCircle size={40} className="mx-auto mb-4 opacity-80" />
             <p className="text-lg font-bold">{error}</p>
           </div>
-        ) : eventos.length === 0 ? (
+        ) : eventos.length === 0 && (!eventosHistoricos || eventosHistoricos.length === 0) ? (
           <div className="text-center py-20 text-gray-500 flex-1 flex flex-col justify-center">
             <p className="text-lg font-medium">
               No hay eventos disponibles en este momento.
@@ -100,10 +101,19 @@ export default function PublicEvents() {
           </div>
         ) : (
           <>
-            <EventGrid eventos={eventos} />
+            {/* Próximos */}
+            {eventos.length > 0 ? (
+              <EventGrid eventos={eventos} />
+            ) : (
+              <div className="text-center py-14 text-gray-500">
+                <p className="text-lg font-medium">
+                  No hay eventos próximos en este momento.
+                </p>
+              </div>
+            )}
             
             {/* Controles de paginación UI */}
-            {totalPages > 1 && (
+            {eventos.length > 0 && totalPages > 1 && (
               <div className="mt-12 mb-8 flex justify-center items-center space-x-2 animate-fade-in">
                 <button
                   onClick={() => goToPage(currentPage - 1)}
@@ -153,6 +163,19 @@ export default function PublicEvents() {
                 >
                   <ChevronRight size={20} />
                 </button>
+              </div>
+            )}
+
+            {/* Históricos */}
+            {eventosHistoricos && eventosHistoricos.length > 0 && (
+              <div className="mt-10 pt-10 border-t border-gray-100">
+                <div className="mb-6 text-center sm:text-left">
+                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 mb-2">
+                    Eventos históricos
+                  </h2>
+                </div>
+
+                <EventGrid eventos={eventosHistoricos} />
               </div>
             )}
           </>
