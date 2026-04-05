@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Calendar, Clock, MapPin, Tag, DollarSign, Heart, Loader2 } from 'lucide-react';
 
-const PublicEventDetail = ({ evento, onVolver, onInteres, isInterested, onEliminarInteres }) => {
+const PublicEventDetail = ({ evento, onVolver, onInteres, isInterested, onEliminarInteres, readOnly = false }) => {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleInteresClick = async () => {
-    if (!evento || isProcessing) return;
+    if (!evento || isProcessing || readOnly) return;
 
     setIsProcessing(true);
 
@@ -57,29 +57,31 @@ const PublicEventDetail = ({ evento, onVolver, onInteres, isInterested, onElimin
           </p>
 
           {/* RN03: Botón de Interés */}
-          <div className="mt-auto border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50 p-6 rounded-xl border border-gray-100">
-            <div>
-              <p className="font-bold text-gray-800">¿Te gustaría asistir?</p>
-              <p className="text-sm text-gray-500">Haznos saber si te interesa este evento.</p>
+          {!readOnly && (
+            <div className="mt-auto border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50 p-6 rounded-xl border border-gray-100">
+              <div>
+                <p className="font-bold text-gray-800">¿Te gustaría asistir?</p>
+                <p className="text-sm text-gray-500">Haznos saber si te interesa este evento.</p>
+              </div>
+              <button
+                onClick={handleInteresClick}
+                disabled={isProcessing}
+                className={`w-full sm:w-auto px-8 py-3.5 rounded-xl flex items-center justify-center font-bold text-base transition-all duration-300 shadow-sm ${
+                  isInterested
+                  ? 'bg-gray-400 text-white hover:bg-gray-500 active:scale-95'
+                  : 'bg-blue-500 text-white hover:bg-blue-600 active:scale-95'
+                  }`}
+              >
+                {isProcessing ? (
+                  <><Loader2 size={20} className="animate-spin mr-2" /> Procesando...</>
+                ) : isInterested ? (
+                  <><Heart size={20} className="mr-2 fill-current" /> Quitar interés</>
+                ) : (
+                  <><Heart size={20} className="mr-2" /> ¡Estoy interesado!</>
+                )}
+              </button>
             </div>
-            <button
-              onClick={handleInteresClick}
-              disabled={isProcessing}
-              className={`w-full sm:w-auto px-8 py-3.5 rounded-xl flex items-center justify-center font-bold text-base transition-all duration-300 shadow-sm ${
-                isInterested
-                ? 'bg-gray-400 text-white hover:bg-gray-500 active:scale-95'
-                : 'bg-blue-500 text-white hover:bg-blue-600 active:scale-95'
-                }`}
-            >
-              {isProcessing ? (
-                <><Loader2 size={20} className="animate-spin mr-2" /> Procesando...</>
-              ) : isInterested ? (
-                <><Heart size={20} className="mr-2 fill-current" /> Quitar interés</>
-              ) : (
-                <><Heart size={20} className="mr-2" /> ¡Estoy interesado!</>
-              )}
-            </button>
-          </div>
+          )}
         </div>
       </div>
     </div>
