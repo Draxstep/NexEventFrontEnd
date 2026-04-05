@@ -185,11 +185,11 @@ export const useEvents = () => {
     try {
       const data = await getCitiesByDepartment(departmentId);
       setCities(data);
-      return data; // 🔥 IMPORTANTE: retornar los datos
+      return data; // IMPORTANTE: retornar los datos
     } catch (err) {
       console.error(err);
       setCities([]);
-      return []; // 🔥 retornar array vacío para evitar undefined
+      return []; // retornar array vacío para evitar undefined
     }
   };
 
