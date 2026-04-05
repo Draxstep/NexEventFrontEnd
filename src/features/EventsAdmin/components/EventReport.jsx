@@ -16,7 +16,10 @@ import {
  * Componente presentacional para mostrar el evento con más interés
  * Sigue principios de presentación limpia y reutilizable
  */
-export default function EventReport({ event, onBack }) {
+export default function EventReport({
+  event,
+  onBack,
+}) {
   if (!event) {
     return (
       <div className="p-8 text-center bg-gray-50 rounded-lg">
