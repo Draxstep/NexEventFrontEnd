@@ -11,7 +11,7 @@ const AuthCallback = () => {
       if (user) {
         const isAdmin = user.publicMetadata?.role === 'admin';
         if (isAdmin) {
-          navigate('/gestion-eventos', { replace: true });
+          navigate('/admin', { replace: true });
         } else {
           // Si no es admin, a la raíz
           navigate('/', { replace: true });
