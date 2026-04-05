@@ -52,48 +52,6 @@ const isPastEvent = (fecha, hora, now = new Date()) => {
 };
 
 
-const buildLocalEventDateTime = (fecha, hora) => {
-  if (!fecha || typeof fecha !== "string") return null;
-
-  const dateParts = fecha.split("-").map((p) => Number.parseInt(p, 10));
-  if (dateParts.length !== 3 || dateParts.some((n) => Number.isNaN(n))) return null;
-
-  const [year, month, day] = dateParts;
-
-  // Si no hay hora, asumimos fin de día para no marcar como finalizado antes de tiempo.
-  let hour = 23;
-  let minute = 59;
-  let second = 59;
-
-  if (hora && typeof hora === "string") {
-    const timeParts = hora
-      .trim()
-      .split(":")
-      .map((p) => Number.parseInt(p, 10));
-
-    if (
-      timeParts.length >= 2 &&
-      timeParts.length <= 3 &&
-      !timeParts.some((n) => Number.isNaN(n))
-    ) {
-      hour = timeParts[0];
-      minute = timeParts[1];
-      second = timeParts[2] ?? 0;
-    }
-  }
-
-  const d = new Date(year, month - 1, day, hour, minute, second, 0);
-  if (Number.isNaN(d.getTime())) return null;
-  return d;
-};
-
-const isPastEvent = (fecha, hora, now = new Date()) => {
-  const eventDateTime = buildLocalEventDateTime(fecha, hora);
-  if (!eventDateTime) return false;
-  return eventDateTime.getTime() < now.getTime();
-};
-
-
 export const useEventsUsers = () => {
   const { getToken, isSignedIn } = useAuth();
   const { user, isLoaded } = useUser();
@@ -121,7 +79,7 @@ export const useEventsUsers = () => {
     setCurrentPage(1); // Volvemos a la primera página de la lista cuando no hay filtros
   };
 
-  // 🔥 Adaptador del formato backend → formato UI
+  //  Adaptador del formato backend → formato UI
   const adaptEvent = (event) => ({
     id: event.id,
     nombre: event.nombre,
@@ -137,7 +95,7 @@ export const useEventsUsers = () => {
     imagenUrl: event.imagen_url,
   });
 
-  // 🔹 Extraer categorías únicas
+  //  Extraer categorías únicas
   const categoriasDisponibles = useMemo(() => {
     const categoriasSet = new Set(
       eventosOriginales.map((e) => e.categoria).filter(Boolean)
@@ -145,7 +103,7 @@ export const useEventsUsers = () => {
     return Array.from(categoriasSet).sort();
   }, [eventosOriginales]);
 
-  // 🔹 Aplicar filtros
+  //  Aplicar filtros
   const eventosFiltrados = useMemo(() => {
     const filtered = eventosOriginales.filter((e) => {
       const term = filters.search.toLowerCase();
@@ -184,7 +142,7 @@ export const useEventsUsers = () => {
     });
   }, [eventosOriginales, filters]);
 
-  // 🔹 Separar + ordenar: Próximos primero (asc), Históricos después (desc)
+  //  Separar + ordenar: Próximos primero (asc), Históricos después (desc)
   const { upcomingEvents, historicalEvents } = useMemo(() => {
     const now = new Date();
 
@@ -220,7 +178,7 @@ export const useEventsUsers = () => {
     };
   }, [eventosFiltrados]);
 
-  // 🔹 Paginación (solo Próximos)
+  //  Paginación (solo Próximos)
   const paginatedEvents = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     return upcomingEvents.slice(startIndex, startIndex + ITEMS_PER_PAGE);
@@ -232,7 +190,7 @@ export const useEventsUsers = () => {
     setCurrentPage(Math.max(1, Math.min(pageNumber, totalPages)));
   };
 
-  // 🔥 Traer eventos activos reales
+  //  Traer eventos activos reales
   const fetchEventos = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -252,7 +210,7 @@ export const useEventsUsers = () => {
     fetchEventos();
   }, [fetchEventos]);
 
-  // 🔥 Traer evento por ID real
+  //  Traer evento por ID real
   const fetchEventoById = useCallback(async (id) => {
     setLoading(true);
     setError(null);
@@ -306,7 +264,7 @@ export const useEventsUsers = () => {
       if (!user?.id) {
         throw new Error("Usuario no autenticado");
       }
-      await registrarInteresService(eventoId, user.id); // 🔥 ahora sí correcto
+      await registrarInteresService(eventoId, user.id); // ahora sí correcto
       setInteresado(true);
       await fetchConteo(eventoId);
 
