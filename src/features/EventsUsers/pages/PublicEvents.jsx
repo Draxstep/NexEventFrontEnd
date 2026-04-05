@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEventsUsers } from '../hooks/useEventsUsers';
+import { getTopSellingEvents } from '../services/eventsUsers';
 import EventGrid from '../components/EventGrid';
 import PublicEventFilterBar from '../components/PublicEventFilterBar';
+import TopSellingEvents from '../components/TopSellingEvents';
 
 export default function PublicEvents() {
   const { 
@@ -19,6 +21,37 @@ export default function PublicEvents() {
     goToPage
   } = useEventsUsers();
 
+  const [topEvents, setTopEvents] = useState([]);
+  const [loadingTop, setLoadingTop] = useState(true);
+
+  useEffect(() => {
+    const fetchTopEvents = async () => {
+      try {
+        const data = await getTopSellingEvents();
+        const adapted = (data || []).map((event) => ({
+          id: event.id,
+          nombre: event.nombre,
+          fecha: event.fecha,
+          hora: event.hora,
+          departamento: event.Ciudad?.Departamento?.nombre || "",
+          ciudad: event.Ciudad?.nombre || "",
+          lugar: event.lugar,
+          categoria: event.Categorium?.nombre || event.Categoria?.nombre || event.categoria?.nombre || "",
+          descripcion: event.descripcion,
+          valor: event.valor,
+          estado: event.estado,
+          imagenUrl: event.imagen_url,
+        }));
+        setTopEvents(adapted);
+      } catch (err) {
+        console.error("Error al obtener los eventos populares:", err);
+      } finally {
+        setLoadingTop(false);
+      }
+    };
+    fetchTopEvents();
+  }, []);
+
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative min-h-screen flex flex-col">
       
@@ -32,6 +65,9 @@ export default function PublicEvents() {
           Selecciona un evento para conocer más detalles.
         </p>
       </div>
+
+      {/* Top Eventos Populares — #70: pasa isLoading para skeleton */}
+      <TopSellingEvents events={topEvents} isLoading={loadingTop} />
 
       {/* Barra de Filtros */}
       {!loading && !error && (
@@ -91,7 +127,6 @@ export default function PublicEvents() {
                 <div className="flex space-x-1">
                   {[...Array(totalPages)].map((_, i) => {
                     const page = i + 1;
-                    // Mostrar solo páginas iniciales, finales y cercanas a la actual para no saturar si hay muchas
                     if (
                       page === 1 || 
                       page === totalPages || 

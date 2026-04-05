@@ -105,7 +105,7 @@ export const useEventsUsers = () => {
 
   //  Aplicar filtros
   const eventosFiltrados = useMemo(() => {
-    return eventosOriginales.filter((e) => {
+    const filtered = eventosOriginales.filter((e) => {
       const term = filters.search.toLowerCase();
 
       const matchSearch =
@@ -118,6 +118,27 @@ export const useEventsUsers = () => {
         : true;
 
       return matchSearch && matchCategoria;
+    });
+
+    // Orden UX: próximos primero (fecha asc). Finalizados al final.
+    // Para finalizados, se muestran del más reciente al más antiguo.
+    const now = new Date();
+    return [...filtered].sort((a, b) => {
+      const aPast = isPastEvent(a.fecha, a.hora, now);
+      const bPast = isPastEvent(b.fecha, b.hora, now);
+
+      if (aPast !== bPast) return aPast ? 1 : -1;
+
+      const aDt = buildLocalEventDateTime(a.fecha, a.hora);
+      const bDt = buildLocalEventDateTime(b.fecha, b.hora);
+
+      if (!aDt && !bDt) return 0;
+      if (!aDt) return 1;
+      if (!bDt) return -1;
+
+      // Ambos próximos: asc. Ambos finalizados: desc.
+      const diff = aDt.getTime() - bDt.getTime();
+      return aPast ? -diff : diff;
     });
   }, [eventosOriginales, filters]);
 
