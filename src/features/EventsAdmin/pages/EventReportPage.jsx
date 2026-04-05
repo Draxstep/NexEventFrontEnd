@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { RefreshCw, ArrowLeft } from "lucide-react";
-import { getAllEvents } from "../services/eventService";
+import { getAllEvents, getEventById } from "../services/eventService";
 import { getSalesReportByEvent } from "../services/salesReportService";
+import SoldTicketsByTypeTable from "../components/SoldTicketsByTypeTable";
 
 /**
  * EventReportPage
- * Página contenedora para mostrar el reporte del evento con más interés
- * Maneja la navegación y el estado del reporte
+ * Página contenedora para mostrar reportes de ventas por evento.
  */
 export default function EventReportPage() {
   const navigate = useNavigate();
@@ -22,7 +22,6 @@ export default function EventReportPage() {
 
   const [totalsByEventId, setTotalsByEventId] = useState({});
   const reportsCacheRef = useRef(new Map());
-  const { ranking, loading, error, refreshReport } = useEventReport();
 
   const handleBack = () => {
     navigate("/gestion-eventos");
@@ -47,6 +46,76 @@ export default function EventReportPage() {
     return { totalRevenue, totalSold };
   }, []);
 
+  const buildTicketTypeMap = useCallback((eventData) => {
+    if (!eventData || typeof eventData !== "object") return new Map();
+
+    const candidates = [
+      eventData?.tipos_entrada,
+      eventData?.tiposEntrada,
+      eventData?.tiposEntradas,
+      eventData?.tiposDeEntrada,
+      eventData?.ticketTypes,
+      eventData?.ticket_types,
+      eventData?.entradas,
+      eventData?.boletos,
+      eventData?.tipos,
+    ];
+
+    const list = candidates.find((c) => Array.isArray(c)) || [];
+    const map = new Map();
+    list.forEach((t) => {
+      if (!t) return;
+      const id =
+        Number(t?.id) ||
+        Number(t?.tipo_entrada_id) ||
+        Number(t?.id_tipo_entrada) ||
+        Number(t?.tipoId) ||
+        Number(t?.tipo_id) ||
+        Number(t?.tipo_entrada?.id) ||
+        Number(t?.tipoEntradaId) ||
+        Number(t?.ticket_type_id) ||
+        Number(t?.ticketTypeId);
+
+      const name =
+        t?.nombre ||
+        t?.name ||
+        t?.tipo ||
+        t?.descripcion ||
+        t?.label ||
+        t?.nombre_tipo;
+
+      if (Number.isFinite(id) && typeof name === "string" && name.trim()) {
+        map.set(id, name);
+      }
+    });
+
+    return map;
+  }, []);
+
+  const enrichSalesWithTypeName = useCallback((ventas, typeMap) => {
+    if (!Array.isArray(ventas) || !(typeMap instanceof Map)) return ventas;
+
+    return ventas.map((v) => {
+      const typeId =
+        Number(v?.tipo_entrada_id) ||
+        Number(v?.tipoEntradaId) ||
+        Number(v?.ticket_type_id) ||
+        Number(v?.ticketTypeId) ||
+        Number(v?.id_tipo_entrada) ||
+        Number(v?.tipo_id) ||
+        Number(v?.tipoId) ||
+        Number(v?.tipo_entrada) ||
+        Number(v?.tipo) ||
+        Number(v?.tipo_entrada?.id) ||
+        Number(v?.tipoEntrada?.id) ||
+        Number(v?.ticketType?.id);
+
+      const typeName = Number.isFinite(typeId) ? typeMap.get(typeId) : null;
+      if (!typeName) return v;
+      return { ...v, tipo_entrada_nombre: typeName };
+    });
+  }, []);
+
   const loadEventsAndTotals = useCallback(async () => {
     setEventsLoading(true);
     setEventsError(null);
@@ -61,7 +130,6 @@ export default function EventReportPage() {
       const normalizedEvents = Array.isArray(allEvents) ? allEvents : [];
       setEvents(normalizedEvents);
 
-      // Pre-cargar totales por evento (N llamadas, en paralelo)
       const results = await Promise.allSettled(
         normalizedEvents.map(async (evt) => {
           const report = await getSalesReportByEvent(evt.id);
@@ -114,17 +182,55 @@ export default function EventReportPage() {
 
       try {
         const cached = reportsCacheRef.current.get(normalizedId);
-        const report = cached ?? (await getSalesReportByEvent(normalizedId));
+        const baseReport =
+          cached ?? (await getSalesReportByEvent(normalizedId));
+
+        const baseEventData = baseReport?.evento;
+        const eventData =
+          baseEventData && typeof baseEventData === "object"
+            ? baseEventData
+            : await getEventById(normalizedId);
+
+        const reportTypeMap = buildTicketTypeMap(baseReport);
+        const eventTypeMap = buildTicketTypeMap(eventData);
+        const typeMap = reportTypeMap.size > 0 ? reportTypeMap : eventTypeMap;
+        const ventas = Array.isArray(baseReport?.ventas)
+          ? baseReport.ventas
+          : [];
+        const enrichedVentas = enrichSalesWithTypeName(ventas, typeMap);
+
+        if (import.meta.env.DEV) {
+          const hasNames = enrichedVentas.some(
+            (v) => typeof v?.tipo_entrada_nombre === "string" && v.tipo_entrada_nombre.trim()
+          );
+          if (!hasNames) {
+            console.debug("[sales-report] No type names mapped", {
+              reportKeys: Object.keys(baseReport || {}),
+              eventoKeys: Object.keys(eventData || {}),
+              ventasSample: ventas[0],
+            });
+          }
+        }
+
+        const report = {
+          ...baseReport,
+          evento: eventData ?? baseReport?.evento,
+          ventas: enrichedVentas,
+        };
+
         reportsCacheRef.current.set(normalizedId, report);
         setDetailReport(report);
 
-        // Mantener totales coherentes si no estaban precargados
         setTotalsByEventId((prev) => {
           if (prev?.[normalizedId]?.totalRevenue !== undefined) return prev;
           const totals = computeTotals(report);
           return {
             ...prev,
-            [normalizedId]: { totalRevenue: totals.totalRevenue, totalSold: totals.totalSold, error: null },
+            [normalizedId]: {
+              totalRevenue: totals.totalRevenue,
+              totalSold: totals.totalSold,
+              error: null,
+            },
           };
         });
       } catch (err) {
@@ -135,7 +241,7 @@ export default function EventReportPage() {
         setDetailLoading(false);
       }
     },
-    [computeTotals]
+    [buildTicketTypeMap, computeTotals, enrichSalesWithTypeName]
   );
 
   const selectedEvent = useMemo(
@@ -148,11 +254,10 @@ export default function EventReportPage() {
     [detailReport]
   );
 
-  const detailTotals = useMemo(() => computeTotals(detailReport), [computeTotals, detailReport]);
-
-  const refreshAll = useCallback(async () => {
-    await loadEventsAndTotals();
-  }, [loadEventsAndTotals]);
+  const detailTotals = useMemo(
+    () => computeTotals(detailReport),
+    [computeTotals, detailReport]
+  );
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -170,7 +275,7 @@ export default function EventReportPage() {
             Reportes de Eventos
           </h1>
           <button
-            onClick={refreshAll}
+            onClick={loadEventsAndTotals}
             disabled={eventsLoading}
             className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors"
           >
@@ -202,7 +307,7 @@ export default function EventReportPage() {
           <div className="bg-white rounded-lg shadow-md border border-red-200 p-8 text-center animate-fade-in">
             <div className="inline-block bg-red-100 rounded-full p-3 mb-4">
               <div className="w-8 h-8 text-red-600 flex items-center justify-center">
-                ⚠️
+                
               </div>
             </div>
             <p className="text-red-600 font-semibold text-lg mb-2">
@@ -210,7 +315,7 @@ export default function EventReportPage() {
             </p>
             <p className="text-gray-600 mb-6">{eventsError}</p>
             <button
-              onClick={refreshAll}
+              onClick={loadEventsAndTotals}
               className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors inline-flex items-center gap-2"
             >
               <RefreshCw size={18} />
@@ -239,7 +344,8 @@ export default function EventReportPage() {
                   <ul className="divide-y divide-gray-100">
                     {events.map((evt) => {
                       const totals = totalsByEventId?.[evt.id];
-                      const isSelected = Number(selectedEventId) === Number(evt.id);
+                      const isSelected =
+                        Number(selectedEventId) === Number(evt.id);
                       const totalRevenue = totals?.totalRevenue;
                       const totalSold = totals?.totalSold;
 
@@ -263,7 +369,8 @@ export default function EventReportPage() {
                               </div>
                               <div className="text-right">
                                 <p className="text-sm font-bold text-green-700">
-                                  {totalRevenue === null || totalRevenue === undefined
+                                  {totalRevenue === null ||
+                                  totalRevenue === undefined
                                     ? "-"
                                     : formatCOP(totalRevenue)}
                                 </p>
@@ -291,7 +398,9 @@ export default function EventReportPage() {
                     Ventas por Tipo de Entrada
                   </h2>
                   <p className="text-xs text-gray-500 mt-1">
-                    {selectedEvent ? selectedEvent.nombre : "Selecciona un evento"}
+                    {selectedEvent
+                      ? selectedEvent.nombre
+                      : "Selecciona un evento"}
                   </p>
                 </div>
                 <div className="text-right">
@@ -306,69 +415,14 @@ export default function EventReportPage() {
                 <div className="p-8 text-center text-gray-600">
                   Selecciona un evento del listado para ver el detalle.
                 </div>
-              ) : detailLoading ? (
-                <div className="p-8 text-center">
-                  <RefreshCw size={24} className="animate-spin text-blue-600 mb-3 inline-block" />
-                  <p className="text-gray-600 font-medium">Cargando detalle...</p>
-                </div>
-              ) : detailError ? (
-                <div className="p-6">
-                  <p className="text-red-600 font-semibold mb-2">
-                    Error cargando detalle
-                  </p>
-                  <p className="text-gray-600 mb-4">{detailError}</p>
-                  <button
-                    onClick={() => selectEvent(selectedEventId)}
-                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                  >
-                    Reintentar
-                  </button>
-                </div>
-              ) : detailItems.length === 0 ? (
-                <div className="p-8 text-center text-gray-600">
-                  Aún no hay ventas registradas para este evento.
-                </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between text-sm">
-                    <span className="text-gray-700">
-                      Total entradas vendidas: <span className="font-bold">{detailTotals.totalSold}</span>
-                    </span>
-                    <span className="text-gray-700">
-                      Total ganancia: <span className="font-bold">{formatCOP(detailTotals.totalRevenue)}</span>
-                    </span>
-                  </div>
-
-                  <table className="w-full text-sm">
-                    <thead className="bg-white border-b border-gray-200">
-                      <tr className="text-left text-gray-600">
-                        <th className="px-4 py-3 font-semibold">Tipo</th>
-                        <th className="px-4 py-3 font-semibold">Vendidas</th>
-                        <th className="px-4 py-3 font-semibold">Capacidad</th>
-                        <th className="px-4 py-3 font-semibold">Ganancia</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {detailItems.map((item) => (
-                        <tr key={item.id} className="text-gray-800">
-                          <td className="px-4 py-3 font-medium">
-                            {item?.TipoEntrada?.nombre ||
-                              item?.tipoEntrada?.nombre ||
-                              `Tipo ${item?.tipo_entrada_id}`}
-                          </td>
-                          <td className="px-4 py-3">
-                            {Number(item?.cantidad_vendida) || 0}
-                          </td>
-                          <td className="px-4 py-3">
-                            {Number(item?.capacidad_total) || 0}
-                          </td>
-                          <td className="px-4 py-3 font-semibold">
-                            {formatCOP(item?.ganancia)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="p-4">
+                  <SoldTicketsByTypeTable
+                    items={detailItems}
+                    loading={detailLoading}
+                    error={detailError}
+                    onRetry={() => selectEvent(selectedEventId)}
+                  />
                 </div>
               )}
 
@@ -382,7 +436,6 @@ export default function EventReportPage() {
               </div>
             </div>
           </div>
-          <EventReport ranking={ranking} onBack={handleBack} />
         )}
       </div>
     </div>
