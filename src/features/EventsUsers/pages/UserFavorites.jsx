@@ -8,6 +8,9 @@ export default function UserFavorites() {
 
   const navigate = useNavigate();
 
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState(null);
+
   const {
     eventosFavoritos,
     loadingFavoritos,
@@ -70,6 +73,14 @@ export default function UserFavorites() {
       ) : (
         <EventGrid eventos={eventosAdaptados} />
       )}
+      <ModalConfirmation
+        isOpen={showConfirmation}
+        titulo="Eliminar favorito"
+        mensaje="¿Estás seguro de que deseas quitar este evento de tus favoritos?"
+        onConfirm={executeDeletion}
+        onCancel={cancelDeletion}
+        isDanger={true}
+      />
     </div>
   );
 }

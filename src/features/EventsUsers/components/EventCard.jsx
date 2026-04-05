@@ -2,10 +2,35 @@ import React from 'react';
 import { Calendar, Clock, MapPin, Tag, DollarSign } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+const buildLocalEventDateTime = (fecha, hora) => {
+  if (!fecha) return null;
+
+  const [year, month, day] = String(fecha).split('-').map(Number);
+  if (!year || !month || !day) return null;
+
+  const [hour, minute, second] = (hora ? String(hora) : '23:59:59').split(':').map(Number);
+
+  return new Date(
+    year,
+    month - 1,
+    day,
+    Number.isFinite(hour) ? hour : 23,
+    Number.isFinite(minute) ? minute : 59,
+    Number.isFinite(second) ? second : 59
+  );
+};
+
+const isPastEvent = (fecha, hora, now = new Date()) => {
+  const eventDateTime = buildLocalEventDateTime(fecha, hora);
+  if (!eventDateTime) return false;
+  return eventDateTime.getTime() < now.getTime();
+};
+
 const EventCard = ({ evento }) => {
+  const past = isPastEvent(evento?.fecha, evento?.hora);
+
   return (
-    // Transformamos el Div en un Link navegable hacia el Deep Link
-    <Link 
+    <Link
       to={`/eventos/${evento.id}`}
       className="bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col h-full animate-fade-in group block"
     >
@@ -14,7 +39,7 @@ const EventCard = ({ evento }) => {
           <img 
             src={evento.imagenUrl} 
             alt={`Imagen de ${evento.nombre}`} 
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${past ? 'grayscale' : ''}`}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400">Sin imagen</div>
@@ -50,10 +75,12 @@ const EventCard = ({ evento }) => {
             <DollarSign size={18} className="mr-0.5" />
             <span>{evento.valor > 0 ? evento.valor.toLocaleString('es-CO') : 'Gratis'}</span>
           </div>
-          <span className="text-sm text-blue-600 font-medium group-hover:underline">Ver detalle</span>
+          <span className={`text-sm font-medium ${past ? 'text-gray-500' : 'text-blue-600 group-hover:underline'}`}>
+            {past ? 'Detalles no disponibles' : 'Ver detalle'}
+          </span>
         </div>
       </div>
-    </Link>
+    </Wrapper>
   );
 };
 

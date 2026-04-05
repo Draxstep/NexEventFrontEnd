@@ -30,10 +30,10 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
 
-          <div className="flex items-center space-x-2 flex-shrink-0">
+          <NavLink to="/" className="flex items-center space-x-2 flex-shrink-0 hover:opacity-80 transition-opacity">
             <CalendarDays className="h-8 w-8 text-blue-200" />
             <span className="font-bold text-xl tracking-tight truncate">NexEvent</span>
-          </div>
+          </NavLink>
 
           <div className="hidden md:flex space-x-8 items-center">
             {navLinks.map((link) => (
@@ -48,6 +48,16 @@ const Navbar = () => {
               </NavLink>
             </SignedIn>
 
+            {/* Admin Reportes Button */}
+            {isAdmin && (
+              <NavLink 
+                to="/reportes" 
+                className={(props) => `flex items-center ${navLinkClass(props)}`}
+              >
+                
+                Reportes
+              </NavLink>
+            )}
 
             {/* Clerk Authentication Buttons - Desktop */}
             <div className="ml-4 pl-4 border-l border-blue-500 flex items-center space-x-3">
@@ -115,6 +125,19 @@ const Navbar = () => {
 
           {/* Clerk Authentication Buttons - Mobile */}
           <div className="pt-4 mt-2 border-t border-blue-700">
+            {isAdmin && (
+              <NavLink
+                to="/reportes"
+                onClick={() => setIsOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center mb-2 px-3 py-3 text-base font-medium rounded-md transition-colors ${isActive ? 'bg-blue-900 text-white' : 'text-blue-100 hover:text-white hover:bg-blue-700'}`
+                }
+              >
+                
+                Reportes
+              </NavLink>
+            )}
+
             <SignedIn>
               <NavLink
                 to="/mis-favoritos"
