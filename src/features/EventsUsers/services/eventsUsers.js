@@ -89,8 +89,8 @@ export const getEventosByUsuarioId = async (usuario_id) => {
 };
 
 // Obtener los 3 eventos activos más vendidos (Top 3)
-// Usa /eventos/activos y /reportes/ventas/evento/:id para obtener
-// la cantidad_vendida real de cada evento y ordenar correctamente
+// Llama a /eventos/activos y luego a /reportes/ventas/evento/:id
+// para obtener la cantidad_vendida real de cada evento y ordenar correctamente
 export const getTopSellingEvents = async () => {
   // 1. Traemos todos los eventos activos
   const response = await fetch(`${API_URL}/eventos/activos`);
