@@ -10,6 +10,8 @@ import {
   toggleEventStatus,
 } from "../services/eventService";
 
+import { getEventAvailability } from "../services/salesReportService";
+
 export const useEvents = () => {
   const [events, setEvents] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -18,6 +20,10 @@ export const useEvents = () => {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const [availability, setAvailability] = useState([]);
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
+  const [errorAvailability, setErrorAvailability] = useState(null);
 
   const [filters, setFilters] = useState({ search: "", status: "" });
   const [sortConfig, setSortConfig] = useState({
@@ -193,6 +199,20 @@ export const useEvents = () => {
     }
   };
 
+  const fetchAvailability = async (eventId) => {
+    setLoadingAvailability(true);
+    setErrorAvailability(null);
+    try {
+      const data = await getEventAvailability(eventId);
+      setAvailability(data);
+    } catch (err) {
+      console.error(err);
+      setErrorAvailability(err.message || "Error al cargar disponibilidad");
+    } finally {
+      setLoadingAvailability(false);
+    }
+  };
+
   return {
     events: paginatedEvents,
     categories,
@@ -204,6 +224,9 @@ export const useEvents = () => {
     sortConfig,
     currentPage,
     totalPages,
+    availability,            
+    loadingAvailability,     
+    errorAvailability,
     setCurrentPage,
     fetchEvents: fetchInitialData,
     fetchEventById,
@@ -214,5 +237,6 @@ export const useEvents = () => {
     clearFilters,
     requestSort,
     loadCitiesByDepartment,
+    fetchAvailability
   };
 };
