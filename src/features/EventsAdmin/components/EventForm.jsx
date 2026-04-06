@@ -3,6 +3,7 @@ import { Save, ArrowLeft, Ban, Ticket, X } from "lucide-react";
 import Autocomplete from "./Autocomplete";
 import CreatableAutocomplete from "./CreatableAutocomplete";
 import { createCategory, createTicketType } from "../services/eventService";
+import EventTicketTypesEditor from "./EventTicketTypesEditor";
 
 
 const initialForm = {
@@ -62,7 +63,7 @@ const EventForm = ({
 
     setFormData(prev => ({
       ...prev,
-      tipos_entrada: [...prev.tipos_entrada, fullTicket || { id }]
+      tipos_entrada: [...prev.tipos_entrada, { id: fullTicket.id, nombre: fullTicket.nombre, precio: 0, capacidad_total: 0 }]
     }));
   };
 
@@ -86,7 +87,7 @@ const EventForm = ({
       
       setFormData(prev => ({
         ...prev,
-        tipos_entrada: [...prev.tipos_entrada, { id: res.id, nombre: res.nombre }]
+        tipos_entrada: [...prev.tipos_entrada, { id: fullTicket.id, nombre: fullTicket.nombre, precio: 0, capacidad_total: 0 }]
       }));
 
     } catch (error) {
@@ -221,7 +222,11 @@ const EventForm = ({
       hora: formData.hora,
       lugar: formData.lugar,
       categoria_id: formData.categoria_id,
-      tipos_entrada: formData.tipos_entrada.map(t => t.id || t),
+      tipos_entrada: formData.tipos_entrada.map(t => ({
+        tipo_entrada_id: t.id || t,
+        precio: Number(t.precio) || 0,
+        capacidad_total: Number(t.capacidad_total) || 0
+      })),
       ciudad_id: formData.ciudad_id,
       descripcion: formData.descripcion,
       valor: formData.valor,
@@ -418,36 +423,13 @@ const EventForm = ({
               onCreate={handleCreateTicket} 
               placeholder="Search or create ticket types"
             />
-
-            {/* Visualización de los tickets seleccionados*/}
-            <div className="mt-3 flex flex-wrap gap-2">
-              {formData.tipos_entrada.map((ticket) => (
-                <div key={ticket.id || ticket} className="flex items-center bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-200 text-sm">
-                  <Ticket size={14} className="mr-2" />
-                  {ticket.nombre || ticketTypes.find(t => t.id === ticket)?.nombre || "Nuevo Ticket"}
-                  <button type="button" onClick={() => removeTicketType(ticket.id || ticket)} className="ml-2 hover:text-red-500">
-                    <X size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Precio */}
-          <div>
-            <label className="block text-sm font-medium">
-              Price
-            </label>
-            <input
-              type="number"
-              min="0"
-              value={formData.valor}
-              onChange={(e) =>
-                handleChange("valor", e.target.value)
-              }
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+            <ErrorMsg name="tipos_entrada" />
+            {/* Editor de Tickets: Precios y Capacidades */}
+            <EventTicketTypesEditor
+              tickets={formData.tipos_entrada}
+              onChange={(updatedTickets) => handleChange("tipos_entrada", updatedTickets)}
+              onRemove={removeTicketType}
             />
-            <ErrorMsg name="valor" />
           </div>
 
           {/* Imagen */}
