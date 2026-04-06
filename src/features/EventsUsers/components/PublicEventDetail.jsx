@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Calendar, Clock, MapPin, DollarSign, Heart, Loader2, Ticket } from 'lucide-react';
 import { useUser } from "@clerk/clerk-react";
-import PurchaseModal from '../pages/PurchaseModal';
+import PurchaseModal from './PurchaseModal';
 
 const PublicEventDetail = ({ evento, onVolver, onInteres, isInterested, onEliminarInteres, readOnly = false }) => {
   const [isProcessing, setIsProcessing] = useState(false);
