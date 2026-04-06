@@ -13,6 +13,7 @@ export default function EventsManagement() {
   const {
     events,
     categories,
+    ticketTypes,
     cities,
     departments,
     loading,
@@ -175,6 +176,7 @@ export default function EventsManagement() {
           categories={categories}
           cities={cities}
           departments={departments}
+          ticketTypes={ticketTypes}
           loadCitiesByDepartment={loadCitiesByDepartment}
           initialData={selectedEvent}
           onSubmit={handleFormSubmit}

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Save, ArrowLeft, Ban } from "lucide-react";
+import { Save, ArrowLeft, Ban, Ticket, X } from "lucide-react";
 import Autocomplete from "./Autocomplete";
 import CreatableAutocomplete from "./CreatableAutocomplete";
+import { createCategory, createTicketType } from "../services/eventService";
+
 
 const initialForm = {
   nombre: "",
@@ -11,6 +13,7 @@ const initialForm = {
   lugar: "",
   hora: "",
   categoria_id: "",
+  tipos_entrada: [],
   descripcion: "",
   valor: "",
   imagen_url: "",
@@ -20,6 +23,7 @@ const initialForm = {
 const EventForm = ({
   categories = [],
   departments = [],
+  ticketTypes = [],
   loadCitiesByDepartment,
   initialData,
   onSubmit,
@@ -32,6 +36,7 @@ const EventForm = ({
       ? {
         ...initialData,
         categoria_id: initialData?.categoria?.id || initialData?.Categoria?.id || initialData?.Categorium?.id || "",
+        tipos_entrada: initialData?.tipos_entrada || initialData?.TiposEntrada || [],
         ciudad_id: initialData?.Ciudad?.id || "",
         departamento_id:
           initialData?.Ciudad?.Departamento?.id || "",
@@ -42,6 +47,60 @@ const EventForm = ({
 
   const [errors, setErrors] = useState({});
   const [cityOptions, setCityOptions] = useState([]);
+  console.log("Tipos de entrada recibidos:", ticketTypes);
+
+  const ticketTypeOptions = ticketTypes.map((t) => ({ value: t.id, label: t.nombre }));
+
+  // Lógica para agregar tipos de entrada (Tickets)
+  const handleAddTicketType = (id) => {
+    if (!id) return;
+
+    const exists = formData.tipos_entrada.some(t => (t.id || t) === id);
+    if (exists) return;
+
+    const fullTicket = ticketTypes.find(t => t.id === id);
+
+    setFormData(prev => ({
+      ...prev,
+      tipos_entrada: [...prev.tipos_entrada, fullTicket || { id }]
+    }));
+  };
+
+  const handleCreateTicket = async (nuevoValor) => {
+    try {
+      const nombreTicket = typeof nuevoValor === 'string' ? nuevoValor : nuevoValor.nombre;
+      
+      if (!nombreTicket) return;
+
+      const ticketExistente = ticketTypes.find(
+        t => t.nombre.toLowerCase().trim() === nombreTicket.toLowerCase().trim()
+      );
+
+      if (ticketExistente) {
+        handleAddTicketType(ticketExistente.id);
+        return; 
+      }
+
+      const payload = { nombre: nombreTicket };
+      const res = await createTicketType(payload);
+      
+      setFormData(prev => ({
+        ...prev,
+        tipos_entrada: [...prev.tipos_entrada, { id: res.id, nombre: res.nombre }]
+      }));
+
+    } catch (error) {
+      console.error("Error guardando ticket:", error);
+      alert("Hubo un problema al crear el tipo de entrada. Intenta seleccionarlo de la lista si ya existe.");
+    }
+  };
+
+  const removeTicketType = (id) => {
+    setFormData(prev => ({
+      ...prev,
+      tipos_entrada: prev.tipos_entrada.filter(t => (t.id || t) !== id)
+    }));
+  };
 
   useEffect(() => {
     // Si la data inicial cambia desde fuera (ej. cargó un nuevo evento),
@@ -50,6 +109,7 @@ const EventForm = ({
       setFormData({
         ...initialData,
         categoria_id: initialData?.categoria?.id || initialData?.Categoria?.id || initialData?.Categorium?.id || "",
+        tipos_entrada: initialData?.tipos_entrada || initialData?.TiposEntrada || [],
         ciudad_id: initialData?.Ciudad?.id || "",
         departamento_id:
           initialData?.Ciudad?.Departamento?.id || "",
@@ -153,7 +213,6 @@ const EventForm = ({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validateForm()) return;
-    
     // We send 'imagen' to the service layer.
     onSubmit({
       id: formData.id,
@@ -162,6 +221,7 @@ const EventForm = ({
       hora: formData.hora,
       lugar: formData.lugar,
       categoria_id: formData.categoria_id,
+      tipos_entrada: formData.tipos_entrada.map(t => t.id || t),
       ciudad_id: formData.ciudad_id,
       descripcion: formData.descripcion,
       valor: formData.valor,
@@ -334,12 +394,43 @@ const EventForm = ({
             <CreatableAutocomplete
               options={categoryOptions}
               value={formData.categoria_id}
-              onChange={(val) =>
-                handleChange("categoria_id", val)
-              }
+              onChange={(val) => handleChange("categoria_id", val)}
+              onCreate={async (val) => {
+      
+                const payload = typeof val === 'string' ? { nombre: val } : val;
+                const res = await createCategory(payload);
+                
+                handleChange("categoria_id", res.id); 
+                return { id: res.id, nombre: res.nombre };
+              }}
               placeholder="Select or create a category"
             />
             <ErrorMsg name="categoria_id" />
+          </div>
+
+          {/* Tipos de entradas */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium mb-1">Ticket Types</label>
+            <CreatableAutocomplete
+              options={ticketTypeOptions}
+              value=""
+              onChange={handleAddTicketType}
+              onCreate={handleCreateTicket} 
+              placeholder="Search or create ticket types"
+            />
+
+            {/* Visualización de los tickets seleccionados*/}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {formData.tipos_entrada.map((ticket) => (
+                <div key={ticket.id || ticket} className="flex items-center bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-200 text-sm">
+                  <Ticket size={14} className="mr-2" />
+                  {ticket.nombre || ticketTypes.find(t => t.id === ticket)?.nombre || "Nuevo Ticket"}
+                  <button type="button" onClick={() => removeTicketType(ticket.id || ticket)} className="ml-2 hover:text-red-500">
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Precio */}
