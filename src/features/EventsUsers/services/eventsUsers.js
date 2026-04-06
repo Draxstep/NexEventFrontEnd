@@ -128,3 +128,20 @@ export const getTopSellingEvents = async () => {
     .sort((a, b) => b.totalVendido - a.totalVendido)
     .slice(0, 3);
 };
+
+export const purchaseTickets = async (purchaseData) => {
+    const response = await fetch(`${API_URL}/compras`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(purchaseData),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to process purchase");
+    }
+
+    return response.json();
+};
