@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Calendar, Clock, MapPin, Tag, DollarSign, Heart, Loader2 } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, MapPin, DollarSign, Heart, Loader2, Ticket } from 'lucide-react';
+import { useUser } from "@clerk/clerk-react";
+import PurchaseModal from '../pages/PurchaseModal';
 
 const PublicEventDetail = ({ evento, onVolver, onInteres, isInterested, onEliminarInteres, readOnly = false }) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const { user } = useUser();
 
   const handleInteresClick = async () => {
     if (!evento || isProcessing || readOnly) return;
@@ -56,34 +61,53 @@ const PublicEventDetail = ({ evento, onVolver, onInteres, isInterested, onElimin
             {evento.descripcion || 'No hay descripción detallada disponible para este evento.'}
           </p>
 
-          {/* RN03: Botón de Interés */}
+          {/* CTA Y BOTONES */}
           {!readOnly && (
             <div className="mt-auto border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50 p-6 rounded-xl border border-gray-100">
-              <div>
+              <div className="mb-4 sm:mb-0">
                 <p className="font-bold text-gray-800">¿Te gustaría asistir?</p>
                 <p className="text-sm text-gray-500">Haznos saber si te interesa este evento.</p>
               </div>
-              <button
-                onClick={handleInteresClick}
-                disabled={isProcessing}
-                className={`w-full sm:w-auto px-8 py-3.5 rounded-xl flex items-center justify-center font-bold text-base transition-all duration-300 shadow-sm ${
-                  isInterested
-                  ? 'bg-gray-400 text-white hover:bg-gray-500 active:scale-95'
-                  : 'bg-blue-500 text-white hover:bg-blue-600 active:scale-95'
-                  }`}
-              >
-                {isProcessing ? (
-                  <><Loader2 size={20} className="animate-spin mr-2" /> Procesando...</>
-                ) : isInterested ? (
-                  <><Heart size={20} className="mr-2 fill-current" /> Quitar interés</>
-                ) : (
-                  <><Heart size={20} className="mr-2" /> ¡Estoy interesado!</>
-                )}
-              </button>
+
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                {/* Botón de Interés */}
+                <button
+                  onClick={handleInteresClick}
+                  disabled={isProcessing}
+                  className={`w-full sm:w-auto px-5 py-2.5 rounded-xl flex items-center justify-center font-bold text-sm sm:text-base whitespace-nowrap transition-all duration-300 shadow-sm ${
+                    isInterested  
+                    ? 'bg-gray-400 text-white hover:bg-gray-500 active:scale-95'
+                      : 'bg-blue-500 text-white hover:bg-blue-600 active:scale-95'
+                    }`}
+                >
+                  {isProcessing ? (
+                    <><Loader2 size={20} className="animate-spin mr-2" /> Procesando...</>
+                  ) : isInterested ? (
+                    <><Heart size={20} className="mr-2 fill-current" /> Quitar interés</>
+                  ) : (
+                    <><Heart size={20} className="mr-2" /> ¡Estoy interesado!</>
+                  )}
+                </button>
+
+                {/* Botón de Compra */}
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl flex items-center justify-center font-bold text-sm sm:text-base whitespace-nowrap transition-all duration-300 shadow-sm bg-blue-600 text-white hover:bg-blue-700 active:scale-95"
+                >
+                  <Ticket size={20} className="mr-2" /> Comprar Entradas
+                </button>
+              </div>
             </div>
           )}
         </div>
       </div>
+
+      <PurchaseModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        event={evento}
+        currentUser={user}
+      />
     </div>
   );
 };
