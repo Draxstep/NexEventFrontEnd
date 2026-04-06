@@ -213,6 +213,16 @@ const EventForm = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    const entradasInvalidas = formData.tipos_entrada.some(
+      (t) => Number(t.capacidad_total) < (t.cantidad_vendida || 0)
+    );
+
+    if (entradasInvalidas) {
+      alert("Error: No puedes establecer una capacidad menor a las entradas que ya se vendieron. Por favor, revisa la configuración.");
+      return;
+    }
+
     if (!validateForm()) return;
     // We send 'imagen' to the service layer.
     onSubmit({

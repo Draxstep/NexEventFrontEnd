@@ -57,19 +57,30 @@ export default function EventTicketTypesEditor({ tickets, onChange, onRemove }) 
             </div>
 
             {/* Input Capacidad */}
-            <div className="flex items-center gap-2">
-              <label htmlFor={`cap-${ticket.id}`} className="text-xs font-medium text-gray-600">
-                Capacidad:
-              </label>
-              <input
-                id={`cap-${ticket.id}`}
-                type="number"
-                min="0"
-                value={ticket.capacidad_total}
-                onChange={(e) => handleFieldChange(ticket.id, 'capacidad_total', e.target.value)}
-                className="w-20 md:w-24 px-2 py-1 border border-gray-300 rounded text-right focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="0"
-              />
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <label htmlFor={`cap-${ticket.id}`} className="text-xs font-medium text-gray-600">
+                  Capacidad:
+                </label>
+                <input
+                  id={`cap-${ticket.id}`}
+                  type="number"
+                  min={ticket.cantidad_vendida || 0}
+                  value={ticket.capacidad_total}
+                  onChange={(e) => handleFieldChange(ticket.id, 'capacidad_total', e.target.value)}
+                  className={`w-20 md:w-24 px-2 py-1 border rounded text-right focus:ring-2 focus:outline-none ${Number(ticket.capacidad_total) < (ticket.cantidad_vendida || 0)
+                      ? 'border-red-500 focus:ring-red-500'
+                      : 'border-gray-300 focus:ring-blue-500'
+                    }`}
+                  placeholder="0"
+                />
+              </div>
+
+              {Number(ticket.capacidad_total) < (ticket.cantidad_vendida || 0) && (
+                <span className="text-[10px] text-red-500 leading-tight">
+                  Ya vendiste {ticket.cantidad_vendida}
+                </span>
+              )}
             </div>
             
             {/* Botón Eliminar */}
