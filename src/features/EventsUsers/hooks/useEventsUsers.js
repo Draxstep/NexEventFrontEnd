@@ -93,6 +93,7 @@ export const useEventsUsers = () => {
     valor: event.valor,
     estado: event.estado,
     imagenUrl: event.imagen_url,
+    eventoTipoEntradas: event.EventoTipoEntradas || event.entradas || [],
   });
 
   //  Extraer categorías únicas
