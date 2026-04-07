@@ -202,3 +202,25 @@ export const getEventWithMostInterest = async () => {
     cantidadInteresados: topEvent.cantidadInteresados,
   };
 };
+
+export const getTicketTypes = async () => {
+  const response = await fetch(`${API_URL}/tipos-entrada`);
+  if (!response.ok) throw new Error("Failed to fetch ticket types");
+  return response.json();
+};
+
+export const createTicketType = async (ticketTypeData) => {
+  const response = await fetch(`${API_URL}/tipos-entrada`, {
+    method: 'POST', 
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(ticketTypeData),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to create ticket type");
+  }
+
+  return response.json();
+};

@@ -31,3 +31,9 @@ export const getSalesReportByEvent = async (eventId) => {
 
   return result;
 };
+
+export const getEventAvailability = async (id) => {
+  const response = await fetch(`${API_URL}/evento-tipos-entrada/${id}/disponibilidad`);
+  if (!response.ok) throw new Error("Error fetching availability");
+  return await response.json();
+};

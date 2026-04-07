@@ -62,6 +62,31 @@ const EventTable = ({
     </th>
   );
 
+  // Función para renderizar el badge de entradas
+  const renderTicketStatus = (status) => {
+    switch (status) {
+      case 'AVAILABLE':
+        return (
+          <span className="px-2 py-1 text-[10px] font-bold uppercase rounded bg-blue-100 text-blue-800 border border-blue-200">
+            Available
+          </span>
+        );
+      case 'SOLD_OUT':
+        return (
+          <span className="px-2 py-1 text-[10px] font-bold uppercase rounded bg-red-100 text-red-800 border border-red-200">
+            Sold Out
+          </span>
+        );
+      case 'UNCONFIGURED':
+      default:
+        return (
+          <span className="px-2 py-1 text-[10px] font-bold uppercase rounded bg-gray-100 text-gray-500 border border-gray-200">
+            No Tickets
+          </span>
+        );
+    }
+  };
+
   return (
     <div className="w-full">
       <div className="overflow-x-auto w-full">
@@ -73,6 +98,7 @@ const EventTable = ({
               <SortableHeader label="Location" columnKey="ciudad" />
               <SortableHeader label="Category" columnKey="categoria" />
               <SortableHeader label="Status" columnKey="estado" />
+              <SortableHeader label="Tickets" columnKey="estado_entradas" />
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                 Actions
               </th>
@@ -134,6 +160,11 @@ const EventTable = ({
                   >
                     {item.estado ? "Active" : "Inactive"}
                   </span>
+                </td>
+
+                {/* TICKETS */}
+                <td className="px-4 py-4 whitespace-nowrap text-sm">
+                  {renderTicketStatus(item.estado_entradas)}
                 </td>
 
                 {/* ACTIONS */}
