@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { getEventsByPopularity, getTopMostSoldEvents } from "../services/reportService";
+import { getEventsByPopularity } from "../services/reportService";
+import { getSalesReportByEvent } from "../services/salesReportService";
 /**
  * Hook para gestionar la lógica de obtención del reporte de interés y ranking
  * Sigue el patrón de separación de responsabilidades (SOLID)
@@ -10,10 +11,10 @@ export const useEventReport = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  //Variales TOP
-  const [topEvents, setTopEvents] = useState([]);
-  const [loadingTop, setLoadingTop] = useState(true);
-  const [errorTop, setErrorTop] = useState(null);
+  const [selectedSalesEventId, setSelectedSalesEventId] = useState(null);
+  const [salesItems, setSalesItems] = useState([]);
+  const [loadingSales, setLoadingSales] = useState(false);
+  const [errorSales, setErrorSales] = useState(null);
 
   const fetchEventReport = useCallback(async () => {
     setLoading(true);
@@ -24,8 +25,15 @@ export const useEventReport = () => {
       if (!rankedEvents || rankedEvents.length === 0) {
         setError("No hay eventos disponibles para mostrar.");
         setEvents([]);
+        setSelectedSalesEventId(null);
       } else {
         setEvents(rankedEvents);
+        setSelectedSalesEventId((prev) => {
+          if (prev && rankedEvents.some((item) => Number(item.id) === Number(prev))) {
+            return prev;
+          }
+          return rankedEvents[0]?.id ?? null;
+        });
       }
     } catch (err) {
       console.error("Error fetching event report:", err);
@@ -38,36 +46,45 @@ export const useEventReport = () => {
     }
   }, []);
 
-  const fetchTopEvents = useCallback(async () => {
-    setLoadingTop(true);
-    setErrorTop(null);
+  const fetchSalesReport = useCallback(async (eventId) => {
+    const normalizedId = Number(eventId);
+    if (!Number.isInteger(normalizedId) || normalizedId <= 0) {
+      setSalesItems([]);
+      setErrorSales(null);
+      return;
+    }
+
+    setLoadingSales(true);
+    setErrorSales(null);
+
     try {
-      const data = await getTopMostSoldEvents();
-      if (!data || data.length === 0) {
-        setTopEvents([]);
-      } else {
-        setTopEvents(data);
-      }
+      const data = await getSalesReportByEvent(normalizedId);
+      const ventas = Array.isArray(data?.ventas) ? data.ventas : [];
+      setSalesItems(ventas);
     } catch (err) {
-      console.error("Error fetching top events:", err);
-      setErrorTop(err.message || "Error cargando el top de ventas.");
+      console.error("Error fetching sales report:", err);
+      setErrorSales(err.message || "Error cargando el reporte de ventas.");
+      setSalesItems([]);
     } finally {
-      setLoadingTop(false);
+      setLoadingSales(false);
     }
   }, []);
 
   useEffect(() => {
     fetchEventReport();
-    fetchTopEvents();
-  }, [fetchEventReport, fetchTopEvents]);
+  }, [fetchEventReport]);
+
+  useEffect(() => {
+    fetchSalesReport(selectedSalesEventId);
+  }, [selectedSalesEventId, fetchSalesReport]);
 
   const refreshReport = useCallback(async () => {
     await fetchEventReport();
   }, [fetchEventReport]);
 
-  const refreshTop = useCallback(async () => {
-    await fetchTopEvents();
-  }, [fetchTopEvents]);
+  const refreshSalesReport = useCallback(async () => {
+    await fetchSalesReport(selectedSalesEventId);
+  }, [fetchSalesReport, selectedSalesEventId]);
 
   return {
     events,
@@ -75,9 +92,11 @@ export const useEventReport = () => {
     loading,
     error,
     refreshReport,
-    topEvents,
-    loadingTop,
-    errorTop,
-    refreshTop,
+    selectedSalesEventId,
+    setSelectedSalesEventId,
+    salesItems,
+    loadingSales,
+    errorSales,
+    refreshSalesReport,
   };
 };
