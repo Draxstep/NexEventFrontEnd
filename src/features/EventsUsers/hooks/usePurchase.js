@@ -20,7 +20,7 @@ export const usePurchase = () => {
             setIsSuccess(true);
             return response;
         } catch (err) {
-            setError(err.message || "Error al procesar la compra.");
+            setError(err.message || "Error processing purchase.");
             throw err;
         } finally {
             setLoading(false);
@@ -53,25 +53,32 @@ export const usePurchase = () => {
 
             const detailPurchases = (await Promise.all(detailPurchasesPromises)).filter(Boolean);
 
-            // Transformando las llaves al inglés
-            const adaptedPurchases = detailPurchases.map(purchase => ({
-                purchaseId: purchase.id.toString(),
-                generalQr: purchase.codigo_qr_general,
-                purchaseDate: new Date(purchase.fecha_compra).toLocaleDateString('es-ES', {
-                    year: 'numeric', month: 'short', day: 'numeric'
-                }),
-                event: {
-                    name: purchase.Evento?.nombre || 'Unnamed event',
-                    date: purchase.Evento?.fecha || 'TBD',
-                    time: purchase.Evento?.hora || '',
-                    location: purchase.Evento?.lugar || 'TBD'
-                },
-                tickets: (purchase.Boletos || []).map(ticket => ({
-                    id: ticket.id.toString(),
-                    type: ticket.tipo_entrada || 'General',
-                    uniqueCode: ticket.codigo_qr_individual
-                }))
-            }));
+            const adaptedPurchases = detailPurchases.map(purchase => {
+                // Obtenemos los datos del evento a partir del primer boleto
+                const firstBoleto = purchase.Boletos && purchase.Boletos[0];
+                const eventoData = firstBoleto?.EventoTipoEntrada?.Evento || {};
+
+                return {
+                    purchaseId: purchase.id.toString(),
+                    generalQr: purchase.codigo_qr_general,
+                    purchaseDate: new Date(purchase.fecha_compra).toLocaleDateString('es-ES', {
+                        year: 'numeric', month: 'short', day: 'numeric'
+                    }),
+                    event: {
+                        // Mapeamos desde el evento extraído
+                        name: eventoData.nombre || 'Unnamed event',
+                        date: eventoData.fecha || 'TBD',
+                        time: eventoData.hora || '',
+                        location: eventoData.lugar || 'TBD'
+                    },
+                    tickets: (purchase.Boletos || []).map(ticket => ({
+                        id: ticket.id.toString(),
+                        // Extraemos el tipo de entrada correcto (ej: "Oro", "VIP")
+                        type: ticket.EventoTipoEntrada?.TipoEntrada?.nombre || 'General',
+                        uniqueCode: ticket.codigo_qr_individual
+                    }))
+                };
+            });
 
             setPurchases(adaptedPurchases);
         } catch (err) {
