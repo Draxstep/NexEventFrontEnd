@@ -8,7 +8,8 @@ import {
   createEvent,
   updateEvent,
   toggleEventStatus,
-  getTicketTypes
+  getTicketTypes,
+  configureEventTicketTypes,
 } from "../services/eventService";
 
 import { getEventAvailability } from "../services/salesReportService";
@@ -156,7 +157,19 @@ export const useEvents = () => {
 
   const addEvent = async (newEvent) => {
     try {
-      await createEvent(newEvent);
+      const createdEvent = await createEvent(newEvent);
+
+      const createdEventId =
+        createdEvent?.evento?.id || createdEvent?.id || null;
+
+      if (
+        createdEventId &&
+        Array.isArray(newEvent?.tipos_entrada) &&
+        newEvent.tipos_entrada.length > 0
+      ) {
+        await configureEventTicketTypes(createdEventId, newEvent.tipos_entrada);
+      }
+
       await fetchInitialData();
     } catch (err) {
       setError(err.message || "Error creating event.");
@@ -167,6 +180,17 @@ export const useEvents = () => {
   const editEvent = async (updatedEvent) => {
     try {
       await updateEvent(updatedEvent.id, updatedEvent);
+
+      if (
+        Array.isArray(updatedEvent?.tipos_entrada) &&
+        updatedEvent.tipos_entrada.length > 0
+      ) {
+        await configureEventTicketTypes(
+          updatedEvent.id,
+          updatedEvent.tipos_entrada
+        );
+      }
+
       await fetchInitialData();
     } catch (err) {
       setError(err.message || "Error updating event.");
@@ -185,7 +209,36 @@ export const useEvents = () => {
   
   const fetchEventById = async (id) => {
     try {
-      return await getEventById(id);
+      const eventData = await getEventById(id);
+
+      let ticketConfig = [];
+      try {
+        const availabilityData = await getEventAvailability(id);
+        const normalizedAvailability = Array.isArray(availabilityData)
+          ? availabilityData
+          : [];
+
+        ticketConfig = normalizedAvailability
+          .map((item) => ({
+            id: Number(item?.tipo_entrada_id),
+            nombre:
+              item?.tipo_entrada?.nombre ||
+              item?.TipoEntrada?.nombre ||
+              item?.nombre ||
+              "Tipo de entrada",
+            precio: Number(item?.precio) || 0,
+            capacidad_total: Number(item?.capacidad_total) || 0,
+            cantidad_vendida: Number(item?.cantidad_vendida) || 0,
+          }))
+          .filter((item) => Number.isInteger(item.id) && item.id > 0);
+      } catch (availabilityError) {
+        console.warn("Could not preload ticket configuration:", availabilityError);
+      }
+
+      return {
+        ...eventData,
+        tipos_entrada: ticketConfig,
+      };
     } catch (error) {
       console.error("Error fetching event by id:", error);
       throw error;
