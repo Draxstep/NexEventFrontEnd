@@ -22,6 +22,12 @@ const PublicEventDetail = ({ evento, onVolver, onInteres, isInterested, onElimin
     setIsProcessing(false);
   };
 
+  const isSoldOut = evento.EventoTipoEntradas?.length > 0 
+  ? evento.EventoTipoEntradas.every(entrada => entrada.capacidad <= 0)
+  : false;
+
+  const showBuyButton = !readOnly && !isSoldOut;
+
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden w-full animate-fade-in pb-8">
       {/* Cabecera visual con Imagen */}
@@ -65,8 +71,14 @@ const PublicEventDetail = ({ evento, onVolver, onInteres, isInterested, onElimin
           {!readOnly && (
             <div className="mt-auto border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50 p-6 rounded-xl border border-gray-100">
               <div className="mb-4 sm:mb-0">
-                <p className="font-bold text-gray-800">¿Te gustaría asistir?</p>
-                <p className="text-sm text-gray-500">Haznos saber si te interesa este evento.</p>
+                <p className="font-bold text-gray-800">
+                  {isSoldOut ? "¡Entradas Agotadas!" : "¿Te gustaría asistir?"}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {isSoldOut 
+                  ? "Lo sentimos, ya no quedan cupos disponibles para este evento." 
+                  : "Haznos saber si te interesa este evento."}
+                </p>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
@@ -90,12 +102,14 @@ const PublicEventDetail = ({ evento, onVolver, onInteres, isInterested, onElimin
                 </button>
 
                 {/* Botón de Compra */}
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl flex items-center justify-center font-bold text-sm sm:text-base whitespace-nowrap transition-all duration-300 shadow-sm bg-blue-600 text-white hover:bg-blue-700 active:scale-95"
-                >
-                  <Ticket size={20} className="mr-2" /> Comprar Entradas
-                </button>
+                {showBuyButton && (
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="w-full sm:w-auto px-6 py-2.5 rounded-xl flex items-center justify-center font-bold text-sm sm:text-base whitespace-nowrap transition-all duration-300 shadow-sm bg-blue-600 text-white hover:bg-blue-700 active:scale-95"
+                  >
+                    <Ticket size={18} className="mr-2" /> Comprar Entradas
+                  </button>
+                )}
               </div>
             </div>
           )}
