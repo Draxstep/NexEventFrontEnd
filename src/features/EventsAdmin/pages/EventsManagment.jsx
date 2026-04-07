@@ -32,6 +32,10 @@ export default function EventsManagement() {
     clearFilters,
     loadCitiesByDepartment,
     fetchEventById,
+    availability,            
+    loadingAvailability,     
+    errorAvailability,
+    fetchAvailability
   } = useEvents();
 
   const [view, setView] = useState("list");
@@ -188,6 +192,10 @@ export default function EventsManagement() {
         <EventDetail
           event={selectedEvent}
           onBack={() => setView("list")}
+          fetchAvailability={fetchAvailability}
+          availability={availability}
+          loadingAvailability={loadingAvailability}
+          errorAvailability={errorAvailability}
         />
       )}
 
