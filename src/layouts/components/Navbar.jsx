@@ -53,6 +53,9 @@ const Navbar = () => {
                   Mis favoritos
                 </NavLink>
               )}
+              <NavLink to="/mis-compras" className={navLinkClass}>
+                Mis compras
+              </NavLink>
             </SignedIn>
 
             {/* Clerk Authentication Buttons - Desktop */}
