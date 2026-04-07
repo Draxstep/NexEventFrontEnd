@@ -8,16 +8,24 @@ import {
   createEvent,
   updateEvent,
   toggleEventStatus,
+  getTicketTypes
 } from "../services/eventService";
+
+import { getEventAvailability } from "../services/salesReportService";
 
 export const useEvents = () => {
   const [events, setEvents] = useState([]);
   const [categories, setCategories] = useState([]);
   const [cities, setCities] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [ticketTypes, setTicketTypes] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const [availability, setAvailability] = useState([]);
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
+  const [errorAvailability, setErrorAvailability] = useState(null);
 
   const [filters, setFilters] = useState({ search: "", status: "" });
   const [sortConfig, setSortConfig] = useState({
@@ -41,15 +49,18 @@ export const useEvents = () => {
         eventsData,
         categoriesData,
         departmentsData,
+        ticketTypeData,
       ] = await Promise.all([
         getAllEvents(),
         getAllCategories(),
         getAllDepartments(),
+        getTicketTypes(),
       ]);
 
       setEvents(eventsData);
       setCategories(categoriesData);
       setDepartments(departmentsData);
+      setTicketTypes(ticketTypeData);
 
     } catch (err) {
       console.error(err);
@@ -185,11 +196,25 @@ export const useEvents = () => {
     try {
       const data = await getCitiesByDepartment(departmentId);
       setCities(data);
-      return data; // 🔥 IMPORTANTE: retornar los datos
+      return data; // IMPORTANTE: retornar los datos
     } catch (err) {
       console.error(err);
       setCities([]);
-      return []; // 🔥 retornar array vacío para evitar undefined
+      return []; // retornar array vacío para evitar undefined
+    }
+  };
+
+  const fetchAvailability = async (eventId) => {
+    setLoadingAvailability(true);
+    setErrorAvailability(null);
+    try {
+      const data = await getEventAvailability(eventId);
+      setAvailability(data);
+    } catch (err) {
+      console.error(err);
+      setErrorAvailability(err.message || "Error al cargar disponibilidad");
+    } finally {
+      setLoadingAvailability(false);
     }
   };
 
@@ -198,12 +223,16 @@ export const useEvents = () => {
     categories,
     cities,
     departments,
+    ticketTypes,
     loading,
     error,
     filters,
     sortConfig,
     currentPage,
     totalPages,
+    availability,            
+    loadingAvailability,     
+    errorAvailability,
     setCurrentPage,
     fetchEvents: fetchInitialData,
     fetchEventById,
@@ -214,5 +243,6 @@ export const useEvents = () => {
     clearFilters,
     requestSort,
     loadCitiesByDepartment,
+    fetchAvailability
   };
 };
