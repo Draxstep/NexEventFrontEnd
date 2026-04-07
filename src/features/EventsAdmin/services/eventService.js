@@ -14,6 +14,12 @@ const sanitizeEventPayload = (data = {}) => {
   return payload;
 };
 
+const appendIfPresent = (formData, key, value) => {
+  if (value === undefined || value === null) return;
+  if (typeof value === "string" && value.trim() === "") return;
+  formData.append(key, value);
+};
+
 /* =========================
    EVENTS
 ========================= */
@@ -63,18 +69,24 @@ export const createEvent = async (data) => {
 export const updateEvent = async (id, data) => {
   const sanitizedData = sanitizeEventPayload(data);
 
-  // Si no se está enviando una nueva imagen (la imagen no es archivo físico)
-  // enviamos JSON estándar en el PUT para coincidir con cómo está configurado tu backend para actualizar sin multer.
+  // Cuando hay nueva imagen, enviamos multipart/form-data.
+  // Es importante NO mandar imagen_url en este escenario para evitar conflictos
+  // de validación (archivo nuevo vs URL antigua).
   const hasNewImage = sanitizedData.imagen instanceof File;
 
   if (hasNewImage) {
-    // Si realmente tu backend soporta multer en el PUT (router.put('/:id', upload.single('imagen')...) ) usaríamos FormData:
+    const {
+      id: _ignoredId,
+      imagen_url: _ignoredImageUrl,
+      ...multipartPayload
+    } = sanitizedData;
+
     const formData = new FormData();
-    Object.keys(sanitizedData).forEach((key) => {
-      if (sanitizedData[key] !== undefined && sanitizedData[key] !== null) {
-        if (key === "imagen" && !(sanitizedData[key] instanceof File)) return;
-        formData.append(key, sanitizedData[key]);
-      }
+
+    Object.keys(multipartPayload).forEach((key) => {
+      const value = multipartPayload[key];
+      if (key === "imagen" && !(value instanceof File)) return;
+      appendIfPresent(formData, key, value);
     });
 
     const response = await fetch(`${API_URL}/eventos/${id}`, {
@@ -85,9 +97,20 @@ export const updateEvent = async (id, data) => {
     if (!response.ok) throw new Error(result.error || result.details || "Failed to update event");
     return result;
   } else {
-    // Para las actualizaciones normales sin cambios de foto o donde el backend esperaba application/json
-    const payload = { ...sanitizedData };
-    delete payload.imagen; // No mandamos el File nulo en JSON
+    // Para actualizaciones sin cambiar imagen usamos JSON.
+    const {
+      id: _ignoredId,
+      imagen: _ignoredImage,
+      ...jsonPayload
+    } = sanitizedData;
+
+    const payload = Object.fromEntries(
+      Object.entries(jsonPayload).filter(([, value]) => {
+        if (value === undefined || value === null) return false;
+        if (typeof value === "string" && value.trim() === "") return false;
+        return true;
+      })
+    );
 
     const response = await fetch(`${API_URL}/eventos/${id}`, {
       method: "PUT",
