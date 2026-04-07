@@ -145,3 +145,25 @@ export const purchaseTickets = async (purchaseData) => {
 
     return response.json();
 };
+
+export const getPurchaseHistory = async (usuario_id) => {
+  const response = await fetch(`${API_URL}/compras/usuario/${usuario_id}/historial`);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Error al obtener el historial de compras");
+  }
+
+  return response.json();
+};
+
+export const getPurchaseDetails = async (compra_id) => {
+  const response = await fetch(`${API_URL}/compras/${compra_id}`);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Error al obtener el detalle de la compra");
+  }
+
+  return response.json();
+};
