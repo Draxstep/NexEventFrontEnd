@@ -64,6 +64,7 @@ export const useEventsUsers = () => {
 
   const [filters, setFilters] = useState({ search: "", categoria: "" });
   const [currentPage, setCurrentPage] = useState(1);
+  const [currentHistoricalPage, setCurrentHistoricalPage] = useState(1);
   const [eventosFavoritos, setEventosFavoritos] = useState([]);
   const [loadingFavoritos, setLoadingFavoritos] = useState(false);
   const [errorFavoritos, setErrorFavoritos] = useState(null);
@@ -72,11 +73,13 @@ export const useEventsUsers = () => {
   const updateFilter = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setCurrentPage(1); // Volvemos a la primera página al filtrar
+    setCurrentHistoricalPage(1);
   };
 
   const clearFilters = () => {
     setFilters({ search: "", categoria: "" });
     setCurrentPage(1); // Volvemos a la primera página de la lista cuando no hay filtros
+    setCurrentHistoricalPage(1);
   };
 
   //  Adaptador del formato backend → formato UI
@@ -189,6 +192,22 @@ export const useEventsUsers = () => {
 
   const goToPage = (pageNumber) => {
     setCurrentPage(Math.max(1, Math.min(pageNumber, totalPages)));
+  };
+
+  //  Paginación (Históricos)
+  const paginatedHistoricalEvents = useMemo(() => {
+    const startIndex = (currentHistoricalPage - 1) * ITEMS_PER_PAGE;
+    return historicalEvents.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [historicalEvents, currentHistoricalPage]);
+
+  const totalHistoricalPages = Math.ceil(
+    historicalEvents.length / ITEMS_PER_PAGE
+  );
+
+  const goToHistoricalPage = (pageNumber) => {
+    setCurrentHistoricalPage(
+      Math.max(1, Math.min(pageNumber, totalHistoricalPages))
+    );
   };
 
   //  Traer eventos activos reales
@@ -316,6 +335,7 @@ export const useEventsUsers = () => {
     // Retornamos los eventos paginados en lugar de todos
     eventos: paginatedEvents,
     eventosHistoricos: historicalEvents,
+    eventosHistoricosPaginados: paginatedHistoricalEvents,
     loading,
     error,
     filters,
@@ -339,5 +359,8 @@ export const useEventsUsers = () => {
     currentPage,
     totalPages,
     goToPage,
+    currentHistoricalPage,
+    totalHistoricalPages,
+    goToHistoricalPage,
   };
 };

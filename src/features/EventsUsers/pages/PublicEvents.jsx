@@ -10,6 +10,7 @@ export default function PublicEvents() {
   const { 
     eventos, 
     eventosHistoricos,
+    eventosHistoricosPaginados,
     loading, 
     error, 
     filters, 
@@ -18,7 +19,10 @@ export default function PublicEvents() {
     clearFilters,
     currentPage,
     totalPages,
-    goToPage
+    goToPage,
+    currentHistoricalPage,
+    totalHistoricalPages,
+    goToHistoricalPage,
   } = useEventsUsers();
 
   const [topEvents, setTopEvents] = useState([]);
@@ -58,16 +62,23 @@ export default function PublicEvents() {
       {/* Cabecera Principal */}
       <div className="mb-6 md:mb-8 animate-fade-in text-center sm:text-left">
         <h1 className="text-3xl md:text-5xl font-extrabold text-gray-900 mb-4 tracking-tight">
-          Próximos Eventos
+          NexEvent
         </h1>
-        <p className="text-lg text-gray-600 max-w-2xl">
-          Descubre las mejores actividades, conciertos y obras teatrales cerca de ti.
-          Selecciona un evento para conocer más detalles.
+        <p className="text-lg text-gray-600 max-w-3xl leading-relaxed">
+          Descubre las mejores actividades, conciertos y obras teatrales cerca de ti. Selecciona un evento para conocer mas detalles.
         </p>
       </div>
 
       {/* Top Eventos Populares — #70: pasa isLoading para skeleton */}
       <TopSellingEvents events={topEvents} isLoading={loadingTop} />
+
+      <div className="mt-10 pt-10 border-t border-gray-100">
+        <div className="mb-6 text-center sm:text-left">
+          <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 mb-2">
+            Proximos eventos
+          </h2>
+        </div>
+      </div>
 
       {/* Barra de Filtros */}
       {!loading && !error && (
@@ -175,7 +186,60 @@ export default function PublicEvents() {
                   </h2>
                 </div>
 
-                <EventGrid eventos={eventosHistoricos} />
+                <EventGrid eventos={eventosHistoricosPaginados} />
+
+                {eventosHistoricosPaginados.length > 0 && totalHistoricalPages > 1 && (
+                  <div className="mt-12 mb-2 flex justify-center items-center space-x-2 animate-fade-in">
+                    <button
+                      onClick={() => goToHistoricalPage(currentHistoricalPage - 1)}
+                      disabled={currentHistoricalPage === 1}
+                      className="p-2 rounded-full bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                      aria-label="Página anterior históricos"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+
+                    <div className="flex space-x-1">
+                      {[...Array(totalHistoricalPages)].map((_, i) => {
+                        const page = i + 1;
+                        if (
+                          page === 1 ||
+                          page === totalHistoricalPages ||
+                          (page >= currentHistoricalPage - 1 && page <= currentHistoricalPage + 1)
+                        ) {
+                          return (
+                            <button
+                              key={page}
+                              onClick={() => goToHistoricalPage(page)}
+                              className={`w-10 h-10 rounded-full text-sm font-semibold transition-all shadow-sm ${
+                                currentHistoricalPage === page
+                                  ? 'bg-blue-600 text-white border-transparent'
+                                  : 'bg-white text-gray-700 border-gray-200 border hover:bg-gray-50'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          );
+                        } else if (
+                          page === currentHistoricalPage - 2 ||
+                          page === currentHistoricalPage + 2
+                        ) {
+                          return <span key={page} className="px-1 text-gray-400 self-end mb-1">...</span>;
+                        }
+                        return null;
+                      })}
+                    </div>
+
+                    <button
+                      onClick={() => goToHistoricalPage(currentHistoricalPage + 1)}
+                      disabled={currentHistoricalPage === totalHistoricalPages}
+                      className="p-2 rounded-full bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                      aria-label="Página siguiente históricos"
+                    >
+                      <ChevronRight size={20} />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </>
