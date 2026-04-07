@@ -3,12 +3,53 @@ import { useAuth, useUser } from "@clerk/clerk-react";
 import {
   getActiveEvents,
   getActiveEventById,
+  getEventTicketAvailability,
   registrarInteres as registrarInteresService,
   obtenerConteoIntereses,
   verificarInteres as verificarInteresService,
   eliminarInteres as eliminarInteresService,
   getEventosByUsuarioId as getEventosByUsuarioIdService
 } from "../services/eventsUsers";
+
+const normalizeTicketTypes = (entries = []) => {
+  if (!Array.isArray(entries)) return [];
+
+  return entries
+    .map((entry, index) => {
+      const capacity = Number(entry?.capacidad_total);
+      const sold = Number(entry?.cantidad_vendida);
+      const availableFromApi = Number(entry?.asientos_disponibles);
+
+      const capacidad_total = Number.isFinite(capacity) ? capacity : 0;
+      const cantidad_vendida = Number.isFinite(sold) ? sold : 0;
+      const disponibles = Number.isFinite(availableFromApi)
+        ? availableFromApi
+        : Math.max(capacidad_total - cantidad_vendida, 0);
+
+      return {
+        // id de configuración en evento-tipos-entrada
+        id: Number(entry?.id) || index + 1,
+        // id del tipo de entrada que requiere /api/compras
+        tipo_entrada_id:
+          Number(entry?.tipo_entrada_id) ||
+          Number(entry?.TipoEntrada?.id) ||
+          Number(entry?.tipo_entrada?.id) ||
+          Number(entry?.id) ||
+          0,
+        nombre:
+          entry?.tipo_entrada?.nombre ||
+          entry?.TipoEntrada?.nombre ||
+          entry?.tipo_entrada_nombre ||
+          entry?.nombre ||
+          `Entrada ${index + 1}`,
+        precio: Number.parseFloat(entry?.precio) || 0,
+        capacidad_total,
+        cantidad_vendida,
+        disponibles,
+      };
+    })
+    .filter((item) => item.tipo_entrada_id > 0);
+};
 
 const buildLocalEventDateTime = (fecha, hora) => {
   if (!fecha || typeof fecha !== "string") return null;
@@ -53,7 +94,7 @@ const isPastEvent = (fecha, hora, now = new Date()) => {
 
 
 export const useEventsUsers = () => {
-  const { getToken, isSignedIn } = useAuth();
+  const { isSignedIn } = useAuth();
   const { user, isLoaded } = useUser();
   const [interesado, setInteresado] = useState(false);
 
@@ -83,7 +124,15 @@ export const useEventsUsers = () => {
   };
 
   //  Adaptador del formato backend → formato UI
-  const adaptEvent = (event) => ({
+  const adaptEvent = (event, ticketAvailability = null) => {
+    const rawTicketEntries =
+      Array.isArray(ticketAvailability) && ticketAvailability.length > 0
+        ? ticketAvailability
+        : event.EventoTipoEntradas || event.entradas || [];
+
+    const ticketTypes = normalizeTicketTypes(rawTicketEntries);
+
+    return {
     id: event.id,
     nombre: event.nombre,
     fecha: event.fecha,
@@ -96,8 +145,10 @@ export const useEventsUsers = () => {
     valor: event.valor,
     estado: event.estado,
     imagenUrl: event.imagen_url,
-    eventoTipoEntradas: event.EventoTipoEntradas || event.entradas || [],
-  });
+    eventoTipoEntradas: ticketTypes,
+    ticketTypes,
+  };
+  };
 
   //  Extraer categorías únicas
   const categoriasDisponibles = useMemo(() => {
@@ -219,7 +270,7 @@ export const useEventsUsers = () => {
       const data = await getActiveEvents();
       const adapted = data.map(adaptEvent);
       setEventosOriginales(adapted);
-    } catch (err) {
+    } catch (_err) {
       setError("Error al cargar la cartelera de eventos.");
     } finally {
       setLoading(false);
@@ -237,7 +288,15 @@ export const useEventsUsers = () => {
 
     try {
       const data = await getActiveEventById(id);
-      return adaptEvent(data);
+      let availability = [];
+
+      try {
+        availability = await getEventTicketAvailability(id);
+      } catch (availabilityError) {
+        console.warn("No se pudo cargar disponibilidad de entradas:", availabilityError);
+      }
+
+      return adaptEvent(data, availability);
     } catch (err) {
       setError(err.message);
       return null;
@@ -249,7 +308,7 @@ export const useEventsUsers = () => {
   const fetchConteo = useCallback(async (eventoId) => {
     try {
       const data = await obtenerConteoIntereses(eventoId);
-      setConteo(data.total || 0);
+      setConteo(data.total ?? data.total_interesados ?? 0);
     } catch (err) {
       setError(err.message);
     }
@@ -324,7 +383,7 @@ export const useEventsUsers = () => {
       const data = await getEventosByUsuarioIdService(user.id);
 
       setEventosFavoritos(data);
-    } catch (err) {
+    } catch (_err) {
       setErrorFavoritos("No se pudieron cargar tus favoritos.");
     } finally {
       setLoadingFavoritos(false);

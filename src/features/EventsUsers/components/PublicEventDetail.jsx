@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ArrowLeft, Calendar, Clock, MapPin, DollarSign, Heart, Loader2, Ticket } from 'lucide-react';
 import { useUser } from "@clerk/clerk-react";
 import PurchaseModal from './PurchaseModal';
@@ -22,11 +22,50 @@ const PublicEventDetail = ({ evento, onVolver, onInteres, isInterested, onElimin
     setIsProcessing(false);
   };
 
-  const isSoldOut = evento.EventoTipoEntradas?.length > 0 
-  ? evento.EventoTipoEntradas.every(entrada => entrada.capacidad <= 0)
-  : false;
+  const rawTicketTypes =
+    evento?.ticketTypes ||
+    evento?.eventoTipoEntradas ||
+    evento?.EventoTipoEntradas ||
+    [];
 
-  const showBuyButton = !readOnly && !isSoldOut;
+  const ticketTypes = (Array.isArray(rawTicketTypes) ? rawTicketTypes : [])
+    .map((item, index) => {
+      const capacity = Number(item?.capacidad_total);
+      const sold = Number(item?.cantidad_vendida);
+      const availableFromApi = Number(item?.asientos_disponibles ?? item?.disponibles);
+
+      const capacidad_total = Number.isFinite(capacity) ? capacity : 0;
+      const cantidad_vendida = Number.isFinite(sold) ? sold : 0;
+      const disponibles = Number.isFinite(availableFromApi)
+        ? availableFromApi
+        : Math.max(capacidad_total - cantidad_vendida, 0);
+
+      return {
+        id: Number(item?.id) || index + 1,
+        tipo_entrada_id:
+          Number(item?.tipo_entrada_id) ||
+          Number(item?.TipoEntrada?.id) ||
+          Number(item?.tipo_entrada?.id) ||
+          Number(item?.id) ||
+          0,
+        nombre:
+          item?.nombre ||
+          item?.tipo_entrada?.nombre ||
+          item?.TipoEntrada?.nombre ||
+          `Entrada ${index + 1}`,
+        precio: Number.parseFloat(item?.precio) || 0,
+        capacidad_total,
+        cantidad_vendida,
+        disponibles,
+      };
+    })
+    .filter((item) => item.tipo_entrada_id > 0);
+
+  const isSoldOut =
+    ticketTypes.length > 0 &&
+    ticketTypes.every((entrada) => Number(entrada.disponibles) <= 0);
+
+  const showBuyButton = !readOnly && ticketTypes.length > 0 && !isSoldOut;
 
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden w-full animate-fade-in pb-8">
@@ -57,7 +96,6 @@ const PublicEventDetail = ({ evento, onVolver, onInteres, isInterested, onElimin
           <div className="flex items-start"><Calendar className="text-blue-600 mr-3 mt-0.5" size={20} /><div><p className="text-xs text-gray-500 font-medium uppercase">Fecha</p><p className="font-semibold text-gray-800">{evento.fecha}</p></div></div>
           <div className="flex items-start"><Clock className="text-blue-600 mr-3 mt-0.5" size={20} /><div><p className="text-xs text-gray-500 font-medium uppercase">Hora</p><p className="font-semibold text-gray-800">{evento.hora}</p></div></div>
           <div className="flex items-start"><MapPin className="text-blue-600 mr-3 mt-0.5" size={20} /><div><p className="text-xs text-gray-500 font-medium uppercase">Lugar</p><p className="font-semibold text-gray-800">{evento.lugar}</p><p className="text-sm text-gray-600">{evento.ciudad}, {evento.departamento}</p></div></div>
-          <div className="flex items-start"><DollarSign className="text-blue-600 mr-3 mt-0.5" size={20} /><div><p className="text-xs text-gray-500 font-medium uppercase">Valor entrada</p><p className="font-bold text-gray-900 text-lg">{evento.valor > 0 ? `$${evento.valor.toLocaleString('es-CO')}` : 'Entrada Gratuita'}</p></div></div>
         </div>
 
         {/* Columna Derecha: Descripción y CTA */}
@@ -66,6 +104,38 @@ const PublicEventDetail = ({ evento, onVolver, onInteres, isInterested, onElimin
           <p className="text-gray-600 text-lg leading-relaxed whitespace-pre-wrap flex-1 mb-8">
             {evento.descripcion || 'No hay descripción detallada disponible para este evento.'}
           </p>
+
+          <div className="mb-8">
+            <h4 className="text-lg font-bold text-gray-900 mb-3">Tipos de entrada</h4>
+
+            {ticketTypes.length === 0 ? (
+              <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                Aun no hay tipos de entrada configurados para este evento.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {ticketTypes.map((ticketItem) => (
+                  <div
+                    key={`${ticketItem.tipo_entrada_id}-${ticketItem.id}`}
+                    className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
+                  >
+                    <p className="font-semibold text-gray-900">{ticketItem.nombre}</p>
+                    <p className="text-blue-700 font-bold mt-1 flex items-center">
+                      <DollarSign size={16} className="mr-1" />
+                      {ticketItem.precio > 0
+                        ? ticketItem.precio.toLocaleString('es-CO')
+                        : 'Gratis'}
+                    </p>
+                    <p className={`text-xs mt-1 ${ticketItem.disponibles > 0 ? 'text-gray-500' : 'text-red-600 font-semibold'}`}>
+                      {ticketItem.disponibles > 0
+                        ? `${ticketItem.disponibles} disponibles`
+                        : 'Agotada'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* CTA Y BOTONES */}
           {!readOnly && (
@@ -119,7 +189,7 @@ const PublicEventDetail = ({ evento, onVolver, onInteres, isInterested, onElimin
       <PurchaseModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        event={evento}
+        event={{ ...evento, ticketTypes }}
         currentUser={user}
       />
     </div>

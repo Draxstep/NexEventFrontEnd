@@ -1,5 +1,13 @@
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
+const safeJson = async (response) => {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+};
+
 export const getActiveEvents = async () => {
   const response = await fetch(`${API_URL}/eventos/activos`);
 
@@ -18,6 +26,23 @@ export const getActiveEventById = async (id) => {
   }
 
   return response.json();
+};
+
+export const getEventTicketAvailability = async (eventoId) => {
+  const response = await fetch(
+    `${API_URL}/evento-tipos-entrada/${eventoId}/disponibilidad`
+  );
+  const result = await safeJson(response);
+
+  if (!response.ok) {
+    throw new Error(
+      result?.error ||
+      result?.message ||
+      "Error al obtener disponibilidad de entradas"
+    );
+  }
+
+  return Array.isArray(result) ? result : [];
 };
 
 // Registrar interés
@@ -140,7 +165,11 @@ export const purchaseTickets = async (purchaseData) => {
 
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "Failed to process purchase");
+    throw new Error(
+      errorData.error ||
+      errorData.message ||
+      "Failed to process purchase"
+    );
     }
 
     return response.json();

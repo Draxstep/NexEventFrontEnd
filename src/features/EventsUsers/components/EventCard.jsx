@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, MapPin, Tag, DollarSign } from 'lucide-react';
+import { Calendar, Clock, MapPin, Tag } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const buildLocalEventDateTime = (fecha, hora) => {
@@ -70,11 +70,7 @@ const EventCard = ({ evento }) => {
           </div>
         </div>
 
-        <div className="pt-4 border-t border-gray-100 flex items-center justify-between mt-auto">
-          <div className="flex items-center text-blue-700 font-bold">
-            <DollarSign size={18} className="mr-0.5" />
-            <span>{evento.valor > 0 ? evento.valor.toLocaleString('es-CO') : 'Gratis'}</span>
-          </div>
+        <div className="pt-4 border-t border-gray-100 flex items-center justify-end mt-auto">
           <span className={`text-sm font-medium ${past ? 'text-gray-500' : 'text-blue-600 group-hover:underline'}`}>
             Ver detalle
           </span>
