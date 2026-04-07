@@ -2,6 +2,11 @@
 import { Ticket, Trash2 } from 'lucide-react';
 
 export default function EventTicketTypesEditor({ tickets, onChange, onRemove }) {
+
+  const getDisplayValue = (value) => {
+    const normalized = Number(value);
+    return Number.isFinite(normalized) && normalized > 0 ? normalized : "";
+  };
   
   // Manejador para actualizar el precio o la capacidad de un ticket específico
   const handleFieldChange = (id, field, value) => {
@@ -49,9 +54,9 @@ export default function EventTicketTypesEditor({ tickets, onChange, onRemove }) 
                 id={`precio-${ticket.id}`}
                 type="number"
                 min="0"
-                value={ticket.precio}
+                value={getDisplayValue(ticket.precio)}
                 onChange={(e) => handleFieldChange(ticket.id, 'precio', e.target.value)}
-                className="w-20 md:w-24 px-2 py-1 border border-gray-300 rounded text-right focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-20 md:w-24 px-2 py-1 border border-gray-300 rounded text-right placeholder:text-gray-400 placeholder:opacity-70 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 placeholder="0"
               />
             </div>
@@ -66,9 +71,9 @@ export default function EventTicketTypesEditor({ tickets, onChange, onRemove }) 
                   id={`cap-${ticket.id}`}
                   type="number"
                   min={ticket.cantidad_vendida || 0}
-                  value={ticket.capacidad_total}
+                  value={getDisplayValue(ticket.capacidad_total)}
                   onChange={(e) => handleFieldChange(ticket.id, 'capacidad_total', e.target.value)}
-                  className={`w-20 md:w-24 px-2 py-1 border rounded text-right focus:ring-2 focus:outline-none ${Number(ticket.capacidad_total) < (ticket.cantidad_vendida || 0)
+                  className={`w-20 md:w-24 px-2 py-1 border rounded text-right placeholder:text-gray-400 placeholder:opacity-70 focus:ring-2 focus:outline-none ${Number(ticket.capacidad_total) < (ticket.cantidad_vendida || 0)
                       ? 'border-red-500 focus:ring-red-500'
                       : 'border-gray-300 focus:ring-blue-500'
                     }`}
