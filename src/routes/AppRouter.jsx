@@ -2,10 +2,13 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout.jsx';
 import EventsManagment from '../features/EventsAdmin/pages/EventsManagment.jsx';
 import EventReportPage from '../features/EventsAdmin/pages/EventReportPage.jsx';
+import AdminDashboardPage from '../features/EventsAdmin/pages/AdminDashboardPage.jsx';
 import PublicEvents from '../features/EventsUsers/pages/PublicEvents.jsx';
 import PublicEventDetailPage from '../features/EventsUsers/pages/PublicEventDetailPage.jsx';
 import UserFavorites from '../features/EventsUsers/pages/UserFavorites.jsx';
+import CustomerPurchases from '../features/EventsUsers/pages/CustomerPurchases.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
+import AuthCallback from './AuthCallback.jsx';
 
 export const router = createBrowserRouter([
   {
@@ -16,6 +19,10 @@ export const router = createBrowserRouter([
       {
         index: true, 
         element: <PublicEvents />,
+      },
+      {
+        path: 'auth-callback',
+        element: <AuthCallback />,
       },
       {
         path: 'eventos',
@@ -29,6 +36,10 @@ export const router = createBrowserRouter([
         // Protegemos esta ruta usando el componente ProtectedRoute
         element: <ProtectedRoute allowedRoles={['admin']} />,
         children: [
+          {
+            path: 'admin',
+            element: <AdminDashboardPage />,
+          },
           {
             path: 'gestion-eventos',
             element: <EventsManagment />, 
@@ -45,6 +56,10 @@ export const router = createBrowserRouter([
           {
             path: 'mis-favoritos',
             element: <UserFavorites />,
+          },
+          {
+            path: 'mis-compras',
+            element: <CustomerPurchases />, 
           }
         ]
       }

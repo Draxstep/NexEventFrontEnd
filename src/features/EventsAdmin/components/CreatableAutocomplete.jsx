@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import Autocomplete from './Autocomplete';
-import { createCategory } from '../services/eventService';
 
 export default function CreatableAutocomplete({
-  options,
+  options = [],
   value,
   onChange,
   placeholder,
   error,
-  disabled
+  disabled,
+  onCreate
 }) {
   const [isCreating, setIsCreating] = useState(false);
   const [localOptions, setLocalOptions] = useState(options);
@@ -20,6 +20,11 @@ export default function CreatableAutocomplete({
   }, [options]);
 
   const handleChange = async (val) => {
+    if (typeof onChange !== 'function') {
+      console.error("La prop onChange no fue enviada a CreatableAutocomplete");
+      return;
+    }
+
     if (!val) {
       onChange(val);
       return;
@@ -32,11 +37,13 @@ export default function CreatableAutocomplete({
     if (!exists) {
       setIsCreating(true);
       try {
-        const newCat = await createCategory({ nombre: val });
-        // Add visually new option
-        setLocalOptions(prev => [...prev, { value: newCat.id, label: newCat.nombre }]);
-        // Pass the literal new ID upward
-        onChange(newCat.id);
+        const newItem = await onCreate({ nombre: val });
+        
+        if (newItem && newItem.id) {
+          const formatted = { value: newItem.id, label: newItem.nombre };
+          setLocalOptions(prev => [...prev, formatted]);
+          onChange(newItem.id); 
+        }
       } catch (err) {
         console.error("Error creating category:", err);
         // It's up to the parent or a toast to show this, for now we will alert

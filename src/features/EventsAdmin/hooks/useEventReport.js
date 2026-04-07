@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { getEventsByPopularity } from "../services/reportService";
 
 /**
- * Hook para gestionar la lógica de obtención del evento con más interés
+ * Hook para gestionar la lógica de obtención del reporte de interés y ranking
  * Sigue el patrón de separación de responsabilidades (SOLID)
- * @returns {Object} objeto con event, loading, error y un método refresh
+ * @returns {Object} objeto con ranking, event (top 1), loading, error y un método refresh
  */
 export const useEventReport = () => {
   const [events, setEvents] = useState([]);
@@ -26,7 +26,7 @@ export const useEventReport = () => {
     } catch (err) {
       console.error("Error fetching event report:", err);
       setError(
-        err.message || "Error cargando el reporte del evento."
+        err.message || "Error cargando el reporte de los eventos."
       );
       setEvents([]);
     } finally {
