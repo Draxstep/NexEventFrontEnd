@@ -182,23 +182,27 @@ const EventDetail = ({ event, onBack, fetchAvailability, availability, loadingAv
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {availability.map((item) => {
-                    const percentageSold = item.capacidad_total > 0
-                      ? Math.round((item.cantidad_vendida / item.capacidad_total) * 100)
-                      : 0;
+                    const capacity = Number(item.capacidad_total) || 0;
+                    const sold = Number(item.cantidad_vendida) || 0;
+                    const price = Number(item.precio) || 0;
+
+                    const percentageSold = capacity > 0 ? Math.round((sold / capacity) * 100) : 0;
+                    const seatsAvailable = capacity - sold;
+
                     const isAlmostSoldOut = percentageSold >= 90;
-                    const isSoldOut = item.asientos_disponibles === 0;
+                    const isSoldOut = seatsAvailable <= 0;
 
                     return (
                       <tr key={item.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-4 py-3 font-medium text-gray-900">
-                          {item.tipo_entrada.nombre}
+                          {item.tipo_entrada?.nombre || "Tipo Desconocido"}
                           {isSoldOut && (
                             <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
                               Sold Out
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-right">${Number(item.precio).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-right">${price.toLocaleString()}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-center gap-2">
                             <div className="w-full bg-gray-200 rounded-full h-2 max-w-[120px]">
@@ -210,9 +214,9 @@ const EventDetail = ({ event, onBack, fetchAvailability, availability, loadingAv
                             <span className="text-xs text-gray-500 w-8">{percentageSold}%</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-right text-gray-700">{item.cantidad_vendida}</td>
+                        <td className="px-4 py-3 text-right text-gray-700">{sold}</td>
                         <td className={`px-4 py-3 text-right font-bold ${isSoldOut ? 'text-red-500' : 'text-green-600'}`}>
-                          {item.asientos_disponibles}
+                          {seatsAvailable}
                         </td>
                       </tr>
                     );
