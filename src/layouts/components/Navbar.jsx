@@ -16,7 +16,7 @@ const Navbar = () => {
   ];
 
   if (isAdmin) {
-    navLinks.push({ id: 'admin-panel', label: 'Panel', path: '/admin' });
+    navLinks.push({ id: 'admin-panel', label: 'Panel administrativo', path: '/admin' });
     navLinks.push({ id: 'gestion', label: 'Gestión Eventos', path: '/gestion-eventos' });
   }
 
