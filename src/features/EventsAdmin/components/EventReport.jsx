@@ -1,11 +1,6 @@
 import React from "react";
 import {
-  Calendar,
-  MapPin,
   Heart,
-  ArrowRight,
-  TrendingUp,
-  Trophy,
 } from "lucide-react";
 
 /**
@@ -30,8 +25,6 @@ export default function EventReport({ event, events = [], onBack }) {
   }
 
   const ranking = Array.isArray(events) ? events : [];
-  const restoDelRanking = ranking.length > 0 ? ranking.slice(1) : [];
-
   // Formato de fecha (manejo de string o Date)
   const formatDate = (dateString) => {
     if (!dateString) return "Fecha no especificada";
@@ -50,17 +43,9 @@ export default function EventReport({ event, events = [], onBack }) {
   return (
     <div className="w-full animate-fade-in">
       {/* Contenido principal */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6 sm:p-8 shadow-sm">
+      <div className="">
         {/* Tabla de Ranking de Eventos */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-6">
-            <Trophy className="text-yellow-500" size={32} />
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 border-b-2 border-yellow-200 pb-1 inline-block">
-                Ranking de Eventos por Interés
-              </h2>
-            </div>
-          </div>
+        <div className="mb-0">
           
           <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-200">
             <table className="w-full text-left border-collapse">
@@ -112,56 +97,8 @@ export default function EventReport({ event, events = [], onBack }) {
               </tbody>
             </table>
           </div>
+
         </div>
-
-        {/*Tabla eventos*/}
-        {restoDelRanking.length > 0 && (
-          <div className="mb-8 border border-gray-200 rounded-lg overflow-hidden">
-            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center">
-              <TrendingUp className="text-blue-600 mr-2" size={24} />
-              <h3 className="text-lg font-bold text-gray-800">Otros eventos en tendencia</h3>
-            </div>
-            
-            <div className="divide-y divide-gray-100 bg-white">
-              {restoDelRanking.map((ev, index) => {
-                const evInteres = ev.total_intereses || ev.cantidadInteresados || 0;
-                return (
-                  <div key={ev.id} className="flex flex-col sm:flex-row sm:items-center p-4 hover:bg-blue-50/50 transition-colors gap-4">
-                    <div className="flex items-center gap-4 flex-1">
-                      <span className={`text-xl font-black w-8 ${
-                        index === 0 ? 'text-slate-400' : // #2 Plata
-                        index === 1 ? 'text-amber-600' : // #3 Bronce
-                        'text-blue-400'                  // #4 en adelante Azul
-                      }`}>
-                        #{index + 2}
-                      </span>
-                      <div>
-                        <h4 className="font-bold text-gray-900">{ev.nombre}</h4>
-                        <div className="flex gap-3 text-sm text-gray-500 mt-1">
-                          <span className="flex items-center gap-1"><Calendar size={14}/> {formatDate(ev.fecha)}</span>
-                          <span className="flex items-center gap-1"><MapPin size={14}/> {ev.Ciudad?.nombre || ev.lugar}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-end sm:justify-start gap-2 bg-rose-50 px-3 py-1.5 rounded-full border border-rose-100">
-                      <Heart size={14} className="text-rose-500" fill="currentColor" />
-                      <span className="font-bold text-rose-700 text-sm">{evInteres} interesados</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Botón volver */}
-        <button
-          onClick={onBack}
-          className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-        >
-          <ArrowRight size={18} className="rotate-180" />
-          Volver a Gestión de Eventos
-        </button>
       </div>
     </div>
   );
