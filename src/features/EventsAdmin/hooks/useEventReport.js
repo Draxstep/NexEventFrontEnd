@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { getEventInterestRanking } from "../services/eventService";
+import { getEventsByPopularity } from "../services/reportService";
 
 /**
  * Hook para gestionar la lógica de obtención del reporte de interés y ranking
@@ -7,8 +7,7 @@ import { getEventInterestRanking } from "../services/eventService";
  * @returns {Object} objeto con ranking, event (top 1), loading, error y un método refresh
  */
 export const useEventReport = () => {
-  const [ranking, setRanking] = useState([]);
-  const [event, setEvent] = useState(null); // The top 1 event
+  const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -17,23 +16,19 @@ export const useEventReport = () => {
     setError(null);
 
     try {
-      const fullRanking = await getEventInterestRanking();
-      
-      if (!fullRanking || fullRanking.length === 0) {
+      const rankedEvents = await getEventsByPopularity();
+      if (!rankedEvents || rankedEvents.length === 0) {
         setError("No hay eventos disponibles para mostrar.");
-        setRanking([]);
-        setEvent(null);
+        setEvents([]);
       } else {
-        setRanking(fullRanking);
-        setEvent(fullRanking[0]); // El primero es el de mayor interés
+        setEvents(rankedEvents);
       }
     } catch (err) {
       console.error("Error fetching event report:", err);
       setError(
         err.message || "Error cargando el reporte de los eventos."
       );
-      setRanking([]);
-      setEvent(null);
+      setEvents([]);
     } finally {
       setLoading(false);
     }
@@ -48,8 +43,8 @@ export const useEventReport = () => {
   }, [fetchEventReport]);
 
   return {
-    ranking,
-    event,
+    events,
+    event: events.length > 0 ? events[0]: null,
     loading,
     error,
     refreshReport,
