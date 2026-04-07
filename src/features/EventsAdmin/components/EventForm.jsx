@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Save, ArrowLeft, Ban, Ticket, X } from "lucide-react";
+import { Save, ArrowLeft, Ban } from "lucide-react";
 import Autocomplete from "./Autocomplete";
 import CreatableAutocomplete from "./CreatableAutocomplete";
 import { createCategory, createTicketType } from "../services/eventService";
@@ -48,18 +48,19 @@ const EventForm = ({
 
   const [errors, setErrors] = useState({});
   const [cityOptions, setCityOptions] = useState([]);
-  console.log("Tipos de entrada recibidos:", ticketTypes);
 
   const ticketTypeOptions = ticketTypes.map((t) => ({ value: t.id, label: t.nombre }));
 
   // Lógica para agregar tipos de entrada (Tickets)
   const handleAddTicketType = (id) => {
-    if (!id) return;
+    const normalizedId = Number(id);
+    if (!Number.isInteger(normalizedId) || normalizedId <= 0) return;
 
-    const exists = formData.tipos_entrada.some(t => (t.id || t) === id);
+    const exists = formData.tipos_entrada.some((t) => Number(t.id || t) === normalizedId);
     if (exists) return;
 
-    const fullTicket = ticketTypes.find(t => t.id === id);
+    const fullTicket = ticketTypes.find((t) => Number(t.id) === normalizedId);
+    if (!fullTicket) return;
 
     setFormData(prev => ({
       ...prev,
@@ -84,10 +85,23 @@ const EventForm = ({
 
       const payload = { nombre: nombreTicket };
       const res = await createTicketType(payload);
+
+      const createdTicket = {
+        id: Number(res?.id),
+        nombre: res?.nombre || nombreTicket,
+        precio: 0,
+        capacidad_total: 0,
+      };
+
+      if (!Number.isInteger(createdTicket.id) || createdTicket.id <= 0) {
+        throw new Error("Respuesta inválida al crear tipo de entrada");
+      }
       
       setFormData(prev => ({
         ...prev,
-        tipos_entrada: [...prev.tipos_entrada, { id: fullTicket.id, nombre: fullTicket.nombre, precio: 0, capacidad_total: 0 }]
+        tipos_entrada: prev.tipos_entrada.some((t) => Number(t.id || t) === createdTicket.id)
+          ? prev.tipos_entrada
+          : [...prev.tipos_entrada, createdTicket]
       }));
 
     } catch (error) {
@@ -232,11 +246,13 @@ const EventForm = ({
       hora: formData.hora,
       lugar: formData.lugar,
       categoria_id: formData.categoria_id,
-      tipos_entrada: formData.tipos_entrada.map(t => ({
-        tipo_entrada_id: t.id || t,
-        precio: Number(t.precio) || 0,
-        capacidad_total: Number(t.capacidad_total) || 0
-      })),
+      tipos_entrada: formData.tipos_entrada
+        .map((t) => ({
+          tipo_entrada_id: Number(t.tipo_entrada_id || t.id || t),
+          precio: Number(t.precio) || 0,
+          capacidad_total: Number(t.capacidad_total) || 0,
+        }))
+        .filter((t) => Number.isInteger(t.tipo_entrada_id) && t.tipo_entrada_id > 0),
       ciudad_id: formData.ciudad_id,
       descripcion: formData.descripcion,
       valor: formData.valor,

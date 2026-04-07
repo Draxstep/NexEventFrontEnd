@@ -1,5 +1,19 @@
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
+const safeJson = async (response) => {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+};
+
+const sanitizeEventPayload = (data = {}) => {
+  const payload = { ...data };
+  delete payload.tipos_entrada;
+  return payload;
+};
+
 /* =========================
    EVENTS
 ========================= */
@@ -23,15 +37,16 @@ export const getEventById = async (id) => {
 };
 
 export const createEvent = async (data) => {
+  const sanitizedData = sanitizeEventPayload(data);
   const formData = new FormData();
   
-  Object.keys(data).forEach((key) => {
+  Object.keys(sanitizedData).forEach((key) => {
     // Si la clave es "imagen" y es null, no la enviamos
-    if (data[key] !== undefined && data[key] !== null) {
-      if (key === "imagen" && !(data[key] instanceof File)) {
+    if (sanitizedData[key] !== undefined && sanitizedData[key] !== null) {
+      if (key === "imagen" && !(sanitizedData[key] instanceof File)) {
         return; // Evita mandar algo que no sea un archivo en la clave imagen
       }
-      formData.append(key, data[key]);
+      formData.append(key, sanitizedData[key]);
     }
   });
 
@@ -40,23 +55,25 @@ export const createEvent = async (data) => {
     body: formData,
   });
 
-  const result = await response.json();
+  const result = await safeJson(response);
   if (!response.ok) throw new Error(result.error || result.message || "Failed to create event");
   return result;
 };
 
 export const updateEvent = async (id, data) => {
+  const sanitizedData = sanitizeEventPayload(data);
+
   // Si no se está enviando una nueva imagen (la imagen no es archivo físico)
   // enviamos JSON estándar en el PUT para coincidir con cómo está configurado tu backend para actualizar sin multer.
-  const hasNewImage = data.imagen instanceof File;
+  const hasNewImage = sanitizedData.imagen instanceof File;
 
   if (hasNewImage) {
     // Si realmente tu backend soporta multer en el PUT (router.put('/:id', upload.single('imagen')...) ) usaríamos FormData:
     const formData = new FormData();
-    Object.keys(data).forEach((key) => {
-      if (data[key] !== undefined && data[key] !== null) {
-        if (key === "imagen" && !(data[key] instanceof File)) return;
-        formData.append(key, data[key]);
+    Object.keys(sanitizedData).forEach((key) => {
+      if (sanitizedData[key] !== undefined && sanitizedData[key] !== null) {
+        if (key === "imagen" && !(sanitizedData[key] instanceof File)) return;
+        formData.append(key, sanitizedData[key]);
       }
     });
 
@@ -64,12 +81,12 @@ export const updateEvent = async (id, data) => {
       method: "PUT",
       body: formData,
     });
-    const result = await response.json();
+    const result = await safeJson(response);
     if (!response.ok) throw new Error(result.error || result.details || "Failed to update event");
     return result;
   } else {
     // Para las actualizaciones normales sin cambios de foto o donde el backend esperaba application/json
-    const payload = { ...data };
+    const payload = { ...sanitizedData };
     delete payload.imagen; // No mandamos el File nulo en JSON
 
     const response = await fetch(`${API_URL}/eventos/${id}`, {
@@ -78,7 +95,7 @@ export const updateEvent = async (id, data) => {
       body: JSON.stringify(payload),
     });
 
-    const result = await response.json();
+    const result = await safeJson(response);
     if (!response.ok) throw new Error(result.error || result.details || "Failed to update event");
     return result;
   }
@@ -223,4 +240,53 @@ export const createTicketType = async (ticketTypeData) => {
   }
 
   return response.json();
+};
+
+export const configureEventTicketTypes = async (eventId, ticketConfigs = []) => {
+  const normalizedEventId = Number(eventId);
+  if (!Number.isInteger(normalizedEventId) || normalizedEventId <= 0) {
+    throw new Error("Invalid event id for ticket configuration");
+  }
+
+  if (!Array.isArray(ticketConfigs) || ticketConfigs.length === 0) {
+    return null;
+  }
+
+  const payload = ticketConfigs
+    .map((item) => ({
+      tipo_entrada_id: Number(item?.tipo_entrada_id ?? item?.id),
+      precio: Number(item?.precio) || 0,
+      capacidad_total: Number(item?.capacidad_total) || 0,
+    }))
+    .filter(
+      (item) =>
+        Number.isInteger(item.tipo_entrada_id) &&
+        item.tipo_entrada_id > 0 &&
+        Number.isFinite(item.precio) &&
+        Number.isFinite(item.capacidad_total)
+    );
+
+  if (payload.length === 0) {
+    return null;
+  }
+
+  const response = await fetch(
+    `${API_URL}/evento-tipos-entrada/${normalizedEventId}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  const result = await safeJson(response);
+  if (!response.ok) {
+    throw new Error(
+      result?.error ||
+        result?.message ||
+        "Failed to configure ticket types for event"
+    );
+  }
+
+  return result;
 };
