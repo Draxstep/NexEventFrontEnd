@@ -1,15 +1,9 @@
 import React, { useEffect } from 'react';
 import { AlertCircle, Heart } from 'lucide-react';
 import { useEventsUsers } from '../hooks/useEventsUsers';
-import { useNavigate } from 'react-router-dom';
 import EventGrid from '../components/EventGrid';
 
 export default function UserFavorites() {
-
-  const navigate = useNavigate();
-
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [eventToDelete, setEventToDelete] = useState(null);
 
   const {
     eventosFavoritos,
@@ -73,14 +67,6 @@ export default function UserFavorites() {
       ) : (
         <EventGrid eventos={eventosAdaptados} />
       )}
-      <ModalConfirmation
-        isOpen={showConfirmation}
-        titulo="Eliminar favorito"
-        mensaje="¿Estás seguro de que deseas quitar este evento de tus favoritos?"
-        onConfirm={executeDeletion}
-        onCancel={cancelDeletion}
-        isDanger={true}
-      />
     </div>
   );
 }
