@@ -11,17 +11,7 @@ import SoldTicketsByTypeTable from "../components/SoldTicketsByTypeTable";
  */
 export default function EventReportPage() {
   const navigate = useNavigate();
-  const [events, setEvents] = useState([]);
-  const [eventsLoading, setEventsLoading] = useState(true);
-  const [eventsError, setEventsError] = useState(null);
-
-  const [selectedEventId, setSelectedEventId] = useState(null);
-  const [detailReport, setDetailReport] = useState(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState(null);
-
-  const [totalsByEventId, setTotalsByEventId] = useState({});
-  const reportsCacheRef = useRef(new Map());
+  const { event, events, loading, error, refreshReport } = useEventReport();
 
   const handleBack = () => {
     navigate("/gestion-eventos");
@@ -218,113 +208,7 @@ export default function EventReportPage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Lista de eventos + total ganancias */}
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-              <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                <h2 className="text-sm font-bold text-gray-900">
-                  Eventos y Ganancias
-                </h2>
-                <p className="text-xs text-gray-500 mt-1">
-                  Click en un evento para ver el detalle por tipo
-                </p>
-              </div>
-
-              {events.length === 0 ? (
-                <div className="p-6 text-sm text-gray-600">
-                  No hay eventos disponibles.
-                </div>
-              ) : (
-                <div className="max-h-[520px] overflow-y-auto">
-                  <ul className="divide-y divide-gray-100">
-                    {events.map((evt) => {
-                      const totals = totalsByEventId?.[evt.id];
-                      const isSelected =
-                        Number(selectedEventId) === Number(evt.id);
-                      const totalRevenue = totals?.totalRevenue;
-                      const totalSold = totals?.totalSold;
-
-                      return (
-                        <li key={evt.id}>
-                          <button
-                            type="button"
-                            onClick={() => selectEvent(evt.id)}
-                            className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
-                              isSelected ? "bg-blue-50" : "bg-white"
-                            }`}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <p className="font-semibold text-gray-900">
-                                  {evt.nombre}
-                                </p>
-                                <p className="text-xs text-gray-500 mt-1">
-                                  {evt.fecha ? `Fecha: ${evt.fecha}` : ""}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-sm font-bold text-green-700">
-                                  {totalRevenue === null ||
-                                  totalRevenue === undefined
-                                    ? "-"
-                                    : formatCOP(totalRevenue)}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  {totalSold === null || totalSold === undefined
-                                    ? ""
-                                    : `Vendidas: ${totalSold}`}
-                                </p>
-                              </div>
-                            </div>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              )}
-            </div>
-
-            {/* Detalle del evento seleccionado */}
-            <div className="lg:col-span-2 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-              <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                <div>
-                  <h2 className="text-sm font-bold text-gray-900">
-                    Ventas por Tipo de Entrada
-                  </h2>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {selectedEvent
-                      ? selectedEvent.nombre
-                      : "Selecciona un evento"}
-                  </p>
-                </div>
-              </div>
-
-              {!selectedEventId ? (
-                <div className="p-8 text-center text-gray-600">
-                  Selecciona un evento del listado para ver el detalle.
-                </div>
-              ) : (
-                <div className="p-4">
-                  <SoldTicketsByTypeTable
-                    items={detailItems}
-                    loading={detailLoading}
-                    error={detailError}
-                    onRetry={() => selectEvent(selectedEventId)}
-                  />
-                </div>
-              )}
-
-              <div className="p-4 border-t border-gray-200">
-                <button
-                  onClick={handleBack}
-                  className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg font-medium transition-colors"
-                >
-                  Volver a Gestión de Eventos
-                </button>
-              </div>
-            </div>
-          </div>
+          <EventReport event={event} events={events} onBack={handleBack} />
         )}
       </div>
     </div>
