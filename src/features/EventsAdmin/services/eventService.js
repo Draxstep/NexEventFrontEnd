@@ -148,11 +148,11 @@ export const getEventInterestCount = async (id) => {
   return response.json();
 };
 
-export const getEventWithMostInterest = async () => {
+export const getEventInterestRanking = async () => {
   // Step 1: Get all events
   const events = await getAllEvents();
   if (!events || events.length === 0) {
-    throw new Error("No events found");
+    return [];
   }
 
   // Step 2: Fetch interest counts for all events in parallel
@@ -173,17 +173,54 @@ export const getEventWithMostInterest = async () => {
     )
   );
 
-  // Step 3: Find event with most interest
-  const maxInterest = interestCounts.reduce((max, current) =>
-    current.totalInteresados > max.totalInteresados ? current : max
-  );
+  // Step 3: Combine events with their interest counts
+  const eventsWithInterest = events.map(event => {
+    const interestData = interestCounts.find(ic => ic.id === event.id);
+    return {
+      ...event,
+      cantidadInteresados: interestData ? interestData.totalInteresados : 0,
+    };
+  });
 
-  // Step 4: Fetch full event details
-  const eventDetails = await getEventById(maxInterest.id);
+  // Step 4: Sort by interest count descending
+  return eventsWithInterest.sort((a, b) => b.cantidadInteresados - a.cantidadInteresados);
+};
 
-  // Step 5: Add interest count to event object
+export const getEventWithMostInterest = async () => {
+  const ranking = await getEventInterestRanking();
+  if (ranking.length === 0) {
+    throw new Error("No events found");
+  }
+  
+  const topEvent = ranking[0];
+  
+  // Step 5: Fetch full event details for the top event (optional if the list already has enough info, but keeping it to not break existing flow if needed)
+  const eventDetails = await getEventById(topEvent.id);
+
   return {
     ...eventDetails,
-    cantidadInteresados: maxInterest.totalInteresados,
+    cantidadInteresados: topEvent.cantidadInteresados,
   };
+};
+
+export const getTicketTypes = async () => {
+  const response = await fetch(`${API_URL}/tipos-entrada`);
+  if (!response.ok) throw new Error("Failed to fetch ticket types");
+  return response.json();
+};
+
+export const createTicketType = async (ticketTypeData) => {
+  const response = await fetch(`${API_URL}/tipos-entrada`, {
+    method: 'POST', 
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(ticketTypeData),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to create ticket type");
+  }
+
+  return response.json();
 };

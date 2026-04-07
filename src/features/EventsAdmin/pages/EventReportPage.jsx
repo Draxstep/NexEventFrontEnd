@@ -1,13 +1,13 @@
-import React from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { RefreshCw, ArrowLeft } from "lucide-react";
-import { useEventReport } from "../hooks/useEventReport";
-import EventReport from "../components/EventReport";
+import { getAllEvents } from "../services/eventService";
+import { getSalesReportByEvent } from "../services/salesReportService";
+import SoldTicketsByTypeTable from "../components/SoldTicketsByTypeTable";
 
 /**
  * EventReportPage
- * Página contenedora para mostrar el reporte del evento con más interés
- * Maneja la navegación y el estado del reporte
+ * Reporte de ventas por evento (master–detail).
  */
 export default function EventReportPage() {
   const navigate = useNavigate();
@@ -16,6 +16,133 @@ export default function EventReportPage() {
   const handleBack = () => {
     navigate("/gestion-eventos");
   };
+
+  const formatCOP = useCallback((value) => {
+    const normalized = Number.parseFloat(value);
+    if (!Number.isFinite(normalized)) return "-";
+    return `$${normalized.toLocaleString("es-CO")}`;
+  }, []);
+
+  const computeTotals = useCallback((report) => {
+    const items = Array.isArray(report?.ventas) ? report.ventas : [];
+    const totalRevenue = items.reduce(
+      (acc, item) => acc + (Number.parseFloat(item?.ganancia) || 0),
+      0
+    );
+    const totalSold = items.reduce(
+      (acc, item) => acc + (Number(item?.cantidad_vendida) || 0),
+      0
+    );
+    return { totalRevenue, totalSold };
+  }, []);
+
+  const loadEventsAndTotals = useCallback(async () => {
+    setEventsLoading(true);
+    setEventsError(null);
+    setTotalsByEventId({});
+    reportsCacheRef.current = new Map();
+    setSelectedEventId(null);
+    setDetailReport(null);
+    setDetailError(null);
+
+    try {
+      const allEvents = await getAllEvents();
+      const normalizedEvents = Array.isArray(allEvents) ? allEvents : [];
+      setEvents(normalizedEvents);
+
+      const results = await Promise.allSettled(
+        normalizedEvents.map(async (evt) => {
+          const report = await getSalesReportByEvent(evt.id);
+          reportsCacheRef.current.set(evt.id, report);
+          const totals = computeTotals(report);
+          return { eventId: evt.id, totals };
+        })
+      );
+
+      const nextTotals = {};
+      results.forEach((res, index) => {
+        const eventId = normalizedEvents[index]?.id;
+        if (!eventId) return;
+        if (res.status === "fulfilled") {
+          nextTotals[eventId] = {
+            totalRevenue: res.value.totals.totalRevenue,
+            totalSold: res.value.totals.totalSold,
+            error: null,
+          };
+        } else {
+          nextTotals[eventId] = {
+            totalRevenue: null,
+            totalSold: null,
+            error: "No se pudo cargar",
+          };
+        }
+      });
+      setTotalsByEventId(nextTotals);
+    } catch (err) {
+      console.error("Error loading events:", err);
+      setEventsError(err?.message || "Error cargando eventos.");
+      setEvents([]);
+    } finally {
+      setEventsLoading(false);
+    }
+  }, [computeTotals]);
+
+  useEffect(() => {
+    loadEventsAndTotals();
+  }, [loadEventsAndTotals]);
+
+  const selectEvent = useCallback(
+    async (eventId) => {
+      const normalizedId = Number(eventId);
+      if (!Number.isInteger(normalizedId) || normalizedId <= 0) return;
+
+      setSelectedEventId(normalizedId);
+      setDetailLoading(true);
+      setDetailError(null);
+
+      try {
+        const cached = reportsCacheRef.current.get(normalizedId);
+        const report = cached ?? (await getSalesReportByEvent(normalizedId));
+        reportsCacheRef.current.set(normalizedId, report);
+        setDetailReport(report);
+
+        setTotalsByEventId((prev) => {
+          if (prev?.[normalizedId]?.totalRevenue !== undefined) return prev;
+          const totals = computeTotals(report);
+          return {
+            ...prev,
+            [normalizedId]: {
+              totalRevenue: totals.totalRevenue,
+              totalSold: totals.totalSold,
+              error: null,
+            },
+          };
+        });
+      } catch (err) {
+        console.error("Error loading sales report detail:", err);
+        setDetailError(err?.message || "Error cargando el reporte de ventas.");
+        setDetailReport(null);
+      } finally {
+        setDetailLoading(false);
+      }
+    },
+    [computeTotals]
+  );
+
+  const selectedEvent = useMemo(
+    () => events.find((e) => Number(e.id) === Number(selectedEventId)) || null,
+    [events, selectedEventId]
+  );
+
+  const detailItems = useMemo(
+    () => (Array.isArray(detailReport?.ventas) ? detailReport.ventas : []),
+    [detailReport]
+  );
+
+  const detailTotals = useMemo(
+    () => computeTotals(detailReport),
+    [computeTotals, detailReport]
+  );
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -33,11 +160,14 @@ export default function EventReportPage() {
             Reportes de Eventos
           </h1>
           <button
-            onClick={refreshReport}
-            disabled={loading}
+            onClick={loadEventsAndTotals}
+            disabled={eventsLoading}
             className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors"
           >
-            <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+            <RefreshCw
+              size={18}
+              className={eventsLoading ? "animate-spin" : ""}
+            />
             <span className="hidden sm:inline">Actualizar</span>
           </button>
         </div>
@@ -46,31 +176,31 @@ export default function EventReportPage() {
       {/* Contenido principal */}
       <div className="flex-1 bg-gray-50 px-4 sm:px-6 py-6 max-w-7xl mx-auto w-full">
         {/* Estado de carga */}
-        {loading ? (
+        {eventsLoading ? (
           <div className="bg-white rounded-lg shadow-md border border-gray-200 p-12 text-center animate-fade-in">
             <div className="inline-block">
               <RefreshCw size={32} className="animate-spin text-blue-600 mb-4" />
             </div>
             <p className="text-gray-600 font-medium text-lg">
-              Cargando reporte...
+              Cargando eventos...
             </p>
             <p className="text-gray-500 text-sm mt-2">
-              Analizando eventos y su interés
+              Preparando reporte de ventas
             </p>
           </div>
-        ) : error ? (
+        ) : eventsError ? (
           <div className="bg-white rounded-lg shadow-md border border-red-200 p-8 text-center animate-fade-in">
             <div className="inline-block bg-red-100 rounded-full p-3 mb-4">
               <div className="w-8 h-8 text-red-600 flex items-center justify-center">
-                ⚠️
+                
               </div>
             </div>
             <p className="text-red-600 font-semibold text-lg mb-2">
               Error al cargar el reporte
             </p>
-            <p className="text-gray-600 mb-6">{error}</p>
+            <p className="text-gray-600 mb-6">{eventsError}</p>
             <button
-              onClick={refreshReport}
+              onClick={loadEventsAndTotals}
               className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors inline-flex items-center gap-2"
             >
               <RefreshCw size={18} />

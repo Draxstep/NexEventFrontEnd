@@ -1,15 +1,20 @@
 import { useState, useEffect, useCallback } from "react";
-import { getEventsByPopularity } from "../services/reportService";
-
+import { getEventWithMostInterest } from "../services/eventService";
+import { getTopMostSoldEvents } from "../services/reportService"
 /**
- * Hook para gestionar la lógica de obtención del evento con más interés
+ * Hook para gestionar la lógica de obtención del reporte de interés y ranking
  * Sigue el patrón de separación de responsabilidades (SOLID)
- * @returns {Object} objeto con event, loading, error y un método refresh
+ * @returns {Object} objeto con ranking, event (top 1), loading, error y un método refresh
  */
 export const useEventReport = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  //Variales TOP
+  const [topEvents, setTopEvents] = useState([]);
+  const [loadingTop, setLoadingTop] = useState(true);
+  const [errorTop, setErrorTop] = useState(null);
 
   const fetchEventReport = useCallback(async () => {
     setLoading(true);
@@ -26,7 +31,7 @@ export const useEventReport = () => {
     } catch (err) {
       console.error("Error fetching event report:", err);
       setError(
-        err.message || "Error cargando el reporte del evento."
+        err.message || "Error cargando el reporte de los eventos."
       );
       setEvents([]);
     } finally {
@@ -34,13 +39,36 @@ export const useEventReport = () => {
     }
   }, []);
 
+  const fetchTopEvents = useCallback(async () => {
+    setLoadingTop(true);
+    setErrorTop(null);
+    try {
+      const data = await getTopMostSoldEvents();
+      if (!data || data.length === 0) {
+        setTopEvents([]);
+      } else {
+        setTopEvents(data);
+      }
+    } catch (err) {
+      console.error("Error fetching top events:", err);
+      setErrorTop(err.message || "Error cargando el top de ventas.");
+    } finally {
+      setLoadingTop(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchEventReport();
-  }, [fetchEventReport]);
+    fetchTopEvents();
+  }, [fetchEventReport, fetchTopEvents]);
 
   const refreshReport = useCallback(async () => {
     await fetchEventReport();
   }, [fetchEventReport]);
+
+  const refreshTop = useCallback(async () => {
+    await fetchTopEvents();
+  }, [fetchTopEvents]);
 
   return {
     events,
@@ -48,5 +76,9 @@ export const useEventReport = () => {
     loading,
     error,
     refreshReport,
+    topEvents,
+    loadingTop,
+    errorTop,
+    refreshTop
   };
 };
