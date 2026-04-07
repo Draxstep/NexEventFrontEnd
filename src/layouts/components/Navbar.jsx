@@ -44,21 +44,16 @@ const Navbar = () => {
             ))}
 
             <SignedIn>
-              <NavLink to="/mis-favoritos" className={navLinkClass}>
-                Mis favoritos
-              </NavLink>
+              {isAdmin ? (
+                <NavLink to="/reportes" className={navLinkClass}>
+                  Reportes
+                </NavLink>
+              ) : (
+                <NavLink to="/mis-favoritos" className={navLinkClass}>
+                  Mis favoritos
+                </NavLink>
+              )}
             </SignedIn>
-
-            {/* Admin Reportes Button */}
-            {isAdmin && (
-              <NavLink 
-                to="/reportes" 
-                className={(props) => `flex items-center ${navLinkClass(props)}`}
-              >
-                
-                Reportes
-              </NavLink>
-            )}
 
             {/* Clerk Authentication Buttons - Desktop */}
             <div className="ml-4 pl-4 border-l border-blue-500 flex items-center space-x-3">
@@ -104,7 +99,6 @@ const Navbar = () => {
         </div>
       </div>
 
-
       <div
         className={`md:hidden absolute w-full bg-blue-800 shadow-lg transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[400px] opacity-100 visible pb-4' : 'max-h-0 opacity-0 invisible'
           } overflow-hidden`}
@@ -126,34 +120,34 @@ const Navbar = () => {
 
           {/* Clerk Authentication Buttons - Mobile */}
           <div className="pt-4 mt-2 border-t border-blue-700">
-            {isAdmin && (
-              <NavLink
-                to="/reportes"
-                onClick={() => setIsOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center mb-2 px-3 py-3 text-base font-medium rounded-md transition-colors ${isActive ? 'bg-blue-900 text-white' : 'text-blue-100 hover:text-white hover:bg-blue-700'}`
-                }
-              >
-                
-                Reportes
-              </NavLink>
-            )}
-
             <SignedIn>
-              <NavLink
-                to="/mis-favoritos"
-                onClick={() => setIsOpen(false)}
-                className={({ isActive }) =>
-                  `block px-3 py-3 text-base font-medium rounded-md transition-colors ${isActive
-                    ? 'bg-blue-900 text-white'
-                    : 'text-blue-100 hover:text-white hover:bg-blue-700'
-                  }`
-                }
-              >
-                Mis favoritos
-              </NavLink>
+              {isAdmin ? (
+                <NavLink
+                  to="/reportes"
+                  onClick={() => setIsOpen(false)}
+                  className={({ isActive }) =>
+                    `block px-3 py-3 text-base font-medium rounded-md transition-colors ${isActive ? 'bg-blue-900 text-white' : 'text-blue-100 hover:text-white hover:bg-blue-700'}`
+                  }
+                >
+                  Reportes
+                </NavLink>
+              ) : (
+                <NavLink
+                  to="/mis-favoritos"
+                  onClick={() => setIsOpen(false)}
+                  className={({ isActive }) =>
+                    `block px-3 py-3 text-base font-medium rounded-md transition-colors ${isActive
+                      ? 'bg-blue-900 text-white'
+                      : 'text-blue-100 hover:text-white hover:bg-blue-700'
+                    }`
+                  }
+                >
+                  Mis favoritos
+                </NavLink>
+              )}
             </SignedIn>
-                        <SignedOut>
+
+            <SignedOut>
               <div className="flex flex-col space-y-3">
                 <SignInButton mode="modal" forceRedirectUrl="/auth-callback">
                   <button
