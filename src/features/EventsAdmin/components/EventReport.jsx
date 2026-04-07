@@ -2,14 +2,10 @@ import React from "react";
 import {
   Calendar,
   MapPin,
-  Tag,
-  Users,
   Heart,
-  Award,
-  Clock,
   ArrowRight,
-  Sparkles,
-  TrendingUp
+  TrendingUp,
+  Trophy,
 } from "lucide-react";
 
 /**
@@ -33,11 +29,8 @@ export default function EventReport({ event, events = [], onBack }) {
     );
   }
 
-  const restoDelRanking = events && events.length > 0 ? events.slice(1) : [];
-  // Cálculo de cantidad de interesados
-  const interestedCount = event.total_intereses !== undefined
-      ? event.total_intereses
-      : (event.cantidadInteresados !== undefined ? event.cantidadInteresados : 0);
+  const ranking = Array.isArray(events) ? events : [];
+  const restoDelRanking = ranking.length > 0 ? ranking.slice(1) : [];
 
   // Formato de fecha (manejo de string o Date)
   const formatDate = (dateString) => {
