@@ -10,6 +10,47 @@ import {
   getEventosByUsuarioId as getEventosByUsuarioIdService
 } from "../services/eventsUsers";
 
+const buildLocalEventDateTime = (fecha, hora) => {
+  if (!fecha || typeof fecha !== "string") return null;
+
+  const dateParts = fecha.split("-").map((p) => Number.parseInt(p, 10));
+  if (dateParts.length !== 3 || dateParts.some((n) => Number.isNaN(n))) return null;
+
+  const [year, month, day] = dateParts;
+
+  // Si no hay hora, asumimos fin de día para no marcar como finalizado antes de tiempo.
+  let hour = 23;
+  let minute = 59;
+  let second = 59;
+
+  if (hora && typeof hora === "string") {
+    const timeParts = hora
+      .trim()
+      .split(":")
+      .map((p) => Number.parseInt(p, 10));
+
+    if (
+      timeParts.length >= 2 &&
+      timeParts.length <= 3 &&
+      !timeParts.some((n) => Number.isNaN(n))
+    ) {
+      hour = timeParts[0];
+      minute = timeParts[1];
+      second = timeParts[2] ?? 0;
+    }
+  }
+
+  const d = new Date(year, month - 1, day, hour, minute, second, 0);
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+};
+
+const isPastEvent = (fecha, hora, now = new Date()) => {
+  const dt = buildLocalEventDateTime(fecha, hora);
+  if (!dt) return false;
+  return dt.getTime() < now.getTime();
+};
+
 
 export const useEventsUsers = () => {
   const { getToken, isSignedIn } = useAuth();
@@ -38,7 +79,7 @@ export const useEventsUsers = () => {
     setCurrentPage(1); // Volvemos a la primera página de la lista cuando no hay filtros
   };
 
-  // 🔥 Adaptador del formato backend → formato UI
+  //  Adaptador del formato backend → formato UI
   const adaptEvent = (event) => ({
     id: event.id,
     nombre: event.nombre,
@@ -52,9 +93,10 @@ export const useEventsUsers = () => {
     valor: event.valor,
     estado: event.estado,
     imagenUrl: event.imagen_url,
+    eventoTipoEntradas: event.EventoTipoEntradas || event.entradas || [],
   });
 
-  // 🔹 Extraer categorías únicas
+  //  Extraer categorías únicas
   const categoriasDisponibles = useMemo(() => {
     const categoriasSet = new Set(
       eventosOriginales.map((e) => e.categoria).filter(Boolean)
@@ -62,9 +104,9 @@ export const useEventsUsers = () => {
     return Array.from(categoriasSet).sort();
   }, [eventosOriginales]);
 
-  // 🔹 Aplicar filtros
+  //  Aplicar filtros
   const eventosFiltrados = useMemo(() => {
-    return eventosOriginales.filter((e) => {
+    const filtered = eventosOriginales.filter((e) => {
       const term = filters.search.toLowerCase();
 
       const matchSearch =
@@ -78,21 +120,78 @@ export const useEventsUsers = () => {
 
       return matchSearch && matchCategoria;
     });
+
+    // Orden UX: próximos primero (fecha asc). Finalizados al final.
+    // Para finalizados, se muestran del más reciente al más antiguo.
+    const now = new Date();
+    return [...filtered].sort((a, b) => {
+      const aPast = isPastEvent(a.fecha, a.hora, now);
+      const bPast = isPastEvent(b.fecha, b.hora, now);
+
+      if (aPast !== bPast) return aPast ? 1 : -1;
+
+      const aDt = buildLocalEventDateTime(a.fecha, a.hora);
+      const bDt = buildLocalEventDateTime(b.fecha, b.hora);
+
+      if (!aDt && !bDt) return 0;
+      if (!aDt) return 1;
+      if (!bDt) return -1;
+
+      // Ambos próximos: asc. Ambos finalizados: desc.
+      const diff = aDt.getTime() - bDt.getTime();
+      return aPast ? -diff : diff;
+    });
   }, [eventosOriginales, filters]);
 
-  // 🔹 Paginación en memoria
+  //  Separar + ordenar: Próximos primero (asc), Históricos después (desc)
+  const { upcomingEvents, historicalEvents } = useMemo(() => {
+    const now = new Date();
+
+    const upcoming = [];
+    const historical = [];
+
+    for (const e of eventosFiltrados) {
+      if (isPastEvent(e.fecha, e.hora, now)) historical.push(e);
+      else upcoming.push(e);
+    }
+
+    const sortAsc = (a, b) => {
+      const aDt = buildLocalEventDateTime(a.fecha, a.hora);
+      const bDt = buildLocalEventDateTime(b.fecha, b.hora);
+      if (!aDt && !bDt) return 0;
+      if (!aDt) return 1;
+      if (!bDt) return -1;
+      return aDt.getTime() - bDt.getTime();
+    };
+
+    const sortDesc = (a, b) => {
+      const aDt = buildLocalEventDateTime(a.fecha, a.hora);
+      const bDt = buildLocalEventDateTime(b.fecha, b.hora);
+      if (!aDt && !bDt) return 0;
+      if (!aDt) return 1;
+      if (!bDt) return -1;
+      return bDt.getTime() - aDt.getTime();
+    };
+
+    return {
+      upcomingEvents: [...upcoming].sort(sortAsc),
+      historicalEvents: [...historical].sort(sortDesc),
+    };
+  }, [eventosFiltrados]);
+
+  //  Paginación (solo Próximos)
   const paginatedEvents = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return eventosFiltrados.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [eventosFiltrados, currentPage]);
+    return upcomingEvents.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [upcomingEvents, currentPage]);
 
-  const totalPages = Math.ceil(eventosFiltrados.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(upcomingEvents.length / ITEMS_PER_PAGE);
 
   const goToPage = (pageNumber) => {
     setCurrentPage(Math.max(1, Math.min(pageNumber, totalPages)));
   };
 
-  // 🔥 Traer eventos activos reales
+  //  Traer eventos activos reales
   const fetchEventos = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -112,7 +211,7 @@ export const useEventsUsers = () => {
     fetchEventos();
   }, [fetchEventos]);
 
-  // 🔥 Traer evento por ID real
+  //  Traer evento por ID real
   const fetchEventoById = useCallback(async (id) => {
     setLoading(true);
     setError(null);
@@ -166,7 +265,7 @@ export const useEventsUsers = () => {
       if (!user?.id) {
         throw new Error("Usuario no autenticado");
       }
-      await registrarInteresService(eventoId, user.id); // 🔥 ahora sí correcto
+      await registrarInteresService(eventoId, user.id); // ahora sí correcto
       setInteresado(true);
       await fetchConteo(eventoId);
 
@@ -216,6 +315,7 @@ export const useEventsUsers = () => {
   return {
     // Retornamos los eventos paginados en lugar de todos
     eventos: paginatedEvents,
+    eventosHistoricos: historicalEvents,
     loading,
     error,
     filters,
