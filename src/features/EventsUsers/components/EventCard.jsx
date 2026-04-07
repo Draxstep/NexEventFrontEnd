@@ -76,7 +76,7 @@ const EventCard = ({ evento }) => {
             <span>{evento.valor > 0 ? evento.valor.toLocaleString('es-CO') : 'Gratis'}</span>
           </div>
           <span className={`text-sm font-medium ${past ? 'text-gray-500' : 'text-blue-600 group-hover:underline'}`}>
-            {past ? 'Detalles no disponibles' : 'Ver detalle'}
+            Ver detalle
           </span>
         </div>
       </div>
