@@ -6,6 +6,7 @@ import AdminDashboardPage from '../features/EventsAdmin/pages/AdminDashboardPage
 import PublicEvents from '../features/EventsUsers/pages/PublicEvents.jsx';
 import PublicEventDetailPage from '../features/EventsUsers/pages/PublicEventDetailPage.jsx';
 import UserFavorites from '../features/EventsUsers/pages/UserFavorites.jsx';
+import CustomerPurchases from '../features/EventsUsers/pages/CustomerPurchases.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
 import AuthCallback from './AuthCallback.jsx';
 
@@ -55,6 +56,10 @@ export const router = createBrowserRouter([
           {
             path: 'mis-favoritos',
             element: <UserFavorites />,
+          },
+          {
+            path: 'mis-compras',
+            element: <CustomerPurchases />, 
           }
         ]
       }

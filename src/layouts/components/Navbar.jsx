@@ -47,6 +47,9 @@ const Navbar = () => {
               <NavLink to="/mis-favoritos" className={navLinkClass}>
                 Mis favoritos
               </NavLink>
+              <NavLink to="/mis-compras" className={navLinkClass}>
+                Mis compras
+              </NavLink>
             </SignedIn>
 
             {/* Admin Reportes Button */}
@@ -151,6 +154,19 @@ const Navbar = () => {
                 }
               >
                 Mis favoritos
+              </NavLink>
+
+              <NavLink
+                to="/mis-compras"
+                onClick={() => setIsOpen(false)}
+                className={({ isActive }) =>
+                  `block px-3 py-3 text-base font-medium rounded-md transition-colors ${isActive
+                    ? 'bg-blue-900 text-white'
+                    : 'text-blue-100 hover:text-white hover:bg-blue-700'
+                  }`
+                }
+              >
+                Mis compras
               </NavLink>
             </SignedIn>
                         <SignedOut>
