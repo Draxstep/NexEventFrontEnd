@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { getEventWithMostInterest } from "../services/eventService";
-import { getTopMostSoldEvents } from "../services/reportService"
+import { getEventsByPopularity, getTopMostSoldEvents } from "../services/reportService";
 /**
  * Hook para gestionar la lógica de obtención del reporte de interés y ranking
  * Sigue el patrón de separación de responsabilidades (SOLID)
@@ -72,13 +71,13 @@ export const useEventReport = () => {
 
   return {
     events,
-    event: events.length > 0 ? events[0]: null,
+    event: events.length > 0 ? events[0] : null,
     loading,
     error,
     refreshReport,
     topEvents,
     loadingTop,
     errorTop,
-    refreshTop
+    refreshTop,
   };
 };
