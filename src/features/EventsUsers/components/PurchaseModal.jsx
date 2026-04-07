@@ -42,7 +42,7 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm px-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative">
         
         {/* HEADER */}
