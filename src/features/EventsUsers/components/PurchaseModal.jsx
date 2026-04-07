@@ -7,38 +7,106 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
 
   const [selectedTicketId, setSelectedTicketId] = useState("");
   const [quantity, setQuantity] = useState(1);
+  const [validationError, setValidationError] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
       resetPurchase();
       setSelectedTicketId("");
       setQuantity(1);
+      setValidationError(null);
     }
   }, [isOpen, resetPurchase]);
 
-  if (!isOpen || !event) return null;
+  const rawTicketTypes =
+    event?.ticketTypes ||
+    event?.eventoTipoEntradas ||
+    event?.EventoTipoEntradas ||
+    [];
 
-  const ticketTypes = event.EventoTipoEntradas || [];
+  const ticketTypes = (Array.isArray(rawTicketTypes) ? rawTicketTypes : [])
+    .map((ticket, index) => {
+      const capacity = Number(ticket?.capacidad_total);
+      const sold = Number(ticket?.cantidad_vendida);
+      const availableFromApi = Number(ticket?.asientos_disponibles ?? ticket?.disponibles);
+
+      const capacidad_total = Number.isFinite(capacity) ? capacity : 0;
+      const cantidad_vendida = Number.isFinite(sold) ? sold : 0;
+      const disponibles = Number.isFinite(availableFromApi)
+        ? availableFromApi
+        : Math.max(capacidad_total - cantidad_vendida, 0);
+
+      return {
+        id: Number(ticket?.id) || index + 1,
+        tipo_entrada_id:
+          Number(ticket?.tipo_entrada_id) ||
+          Number(ticket?.TipoEntrada?.id) ||
+          Number(ticket?.tipo_entrada?.id) ||
+          Number(ticket?.id) ||
+          0,
+        nombre:
+          ticket?.nombre ||
+          ticket?.tipo_entrada?.nombre ||
+          ticket?.TipoEntrada?.nombre ||
+          `Entrada ${index + 1}`,
+        precio: Number.parseFloat(ticket?.precio) || 0,
+        disponibles,
+      };
+    })
+    .filter((ticket) => ticket.tipo_entrada_id > 0);
   
-  const selectedTicket = ticketTypes.find(t => t.id === Number(selectedTicketId));
+  const selectedTicket = ticketTypes.find((t) => String(t.id) === selectedTicketId);
+  const maxQuantity = selectedTicket ? Math.max(Number(selectedTicket.disponibles) || 0, 0) : 0;
   const totalPrice = selectedTicket ? selectedTicket.precio * quantity : 0;
 
+  useEffect(() => {
+    if (selectedTicket && maxQuantity > 0 && quantity > maxQuantity) {
+      setQuantity(maxQuantity);
+    }
+  }, [selectedTicket, maxQuantity, quantity]);
+
+  if (!isOpen || !event) return null;
+
   const handlePurchase = async () => {
-    if (!selectedTicketId || quantity < 1) return;
+    setValidationError(null);
+
+    if (!currentUser?.id) {
+      setValidationError("Debes iniciar sesión para completar la compra.");
+      return;
+    }
+
+    if (!selectedTicket || quantity < 1) {
+      setValidationError("Selecciona un tipo de entrada válido.");
+      return;
+    }
+
+    if (maxQuantity <= 0) {
+      setValidationError("Este tipo de entrada está agotado.");
+      return;
+    }
+
+    if (quantity > maxQuantity) {
+      setValidationError(`Solo hay ${maxQuantity} entradas disponibles para este tipo.`);
+      return;
+    }
 
     const payload = {
       usuario_id: currentUser?.id, 
       evento_id: event.id,
       detallesCompra: [
         {
-          tipo_entrada_id: Number(selectedTicketId),
-          cantidad: quantity,
-          precio_unitario: selectedTicket.precio
+          tipo_entrada_id: Number(selectedTicket.tipo_entrada_id),
+          cantidad: Number(quantity),
         }
       ]
     };
 
     await executePurchase(payload);
+  };
+
+  const handleCloseAfterSuccess = () => {
+    onClose();
+    window.location.reload();
   };
 
   return (
@@ -72,7 +140,7 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
                 Your tickets for <strong>{event.nombre}</strong> have been secured.
               </p>
               <button
-                onClick={onClose}
+                onClick={handleCloseAfterSuccess}
                 className="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Close Window
@@ -87,10 +155,10 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
               </div>
 
               {/* MENSAJE DE ERROR */}
-              {error && (
+              {(error || validationError) && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start text-sm text-red-600">
                   <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>{error}</span>
+                  <span>{validationError || error}</span>
                 </div>
               )}
 
@@ -99,7 +167,7 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Select Ticket Type</label>
                 <div className="space-y-2">
                   {ticketTypes.map((ticket) => {
-                    const isSoldOut = ticket.cantidad_vendida >= ticket.capacidad_total;
+                    const isSoldOut = Number(ticket.disponibles) <= 0;
                     return (
                       <label 
                         key={ticket.id} 
@@ -124,7 +192,12 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
                           </span>
                         </div>
                         <div className="text-right">
-                          <span className="block font-bold text-gray-900">${ticket.precio}</span>
+                          <span className="block font-bold text-gray-900">
+                            ${ticket.precio.toLocaleString("es-CO")}
+                          </span>
+                          {!isSoldOut && (
+                            <span className="text-xs text-gray-500">{ticket.disponibles} disp.</span>
+                          )}
                           {isSoldOut && <span className="text-xs text-red-500 font-semibold uppercase">Sold Out</span>}
                         </div>
                       </label>
@@ -151,9 +224,8 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
                   <span className="w-12 text-center font-semibold text-gray-900">{quantity}</span>
                   <button
                     type="button"
-                    // Opcional: Podrías limitar esto al stock restante si lo tienes disponible
-                    onClick={() => setQuantity(quantity + 1)}
-                    disabled={!selectedTicketId || loading}
+                    onClick={() => setQuantity(Math.min(maxQuantity || 1, quantity + 1))}
+                    disabled={!selectedTicketId || loading || maxQuantity <= 0 || quantity >= maxQuantity}
                     className="p-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 rounded-r-lg transition-colors"
                   >
                     <Plus size={16} />
@@ -161,12 +233,18 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
                 </div>
               </div>
 
+              {selectedTicket && (
+                <p className="text-xs text-gray-500 -mt-4 mb-6 text-right">
+                  Máximo disponible: {maxQuantity}
+                </p>
+              )}
+
               {/* TOTAL Y BOTÓN DE PAGO */}
               <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
                 <div>
                   <span className="block text-sm text-gray-500">Total Price</span>
                   <span className="block text-2xl font-bold text-gray-900">
-                    ${totalPrice.toLocaleString()}
+                    ${totalPrice.toLocaleString("es-CO")}
                   </span>
                 </div>
                 <button
