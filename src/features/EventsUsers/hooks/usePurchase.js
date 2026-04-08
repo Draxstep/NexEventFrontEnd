@@ -75,7 +75,9 @@ export const usePurchase = () => {
                         id: ticket.id.toString(),
                         // Extraemos el tipo de entrada correcto (ej: "Oro", "VIP")
                         type: ticket.EventoTipoEntrada?.TipoEntrada?.nombre || 'General',
-                        uniqueCode: ticket.codigo_qr_individual
+                        uniqueCode: ticket.codigo_qr_individual,
+                        estado: ticket.estado || 'activo',
+                        valor: ticket.EventoTipoEntrada?.precio || 0
                     }))
                 };
             });

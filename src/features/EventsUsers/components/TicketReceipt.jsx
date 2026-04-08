@@ -3,7 +3,7 @@ import { Calendar, MapPin, Ticket, Printer } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { useReactToPrint } from 'react-to-print';
 
-export default function TicketReceipt({ event, type, uniqueCode }) {
+export default function TicketReceipt({ event, type, uniqueCode, price, status}) {
     const qrValue = uniqueCode || 'TKT-00000000';
 
     const contentRef = useRef(null);
@@ -12,6 +12,25 @@ export default function TicketReceipt({ event, type, uniqueCode }) {
         contentRef: contentRef, 
         documentTitle: `Entrada-${event?.name || 'Evento'}-${qrValue.substring(0, 8)}`,
     });
+
+    const getStatusStyles = (ticketStatus) => {
+        const s = (ticketStatus || 'activo').toLowerCase();
+        switch (s) {
+            case 'usado':
+                return 'bg-gray-100 text-gray-800 print:border-gray-800';
+            case 'cancelado':
+                return 'bg-red-100 text-red-800 print:border-red-800';
+            case 'inactivo':
+                return 'bg-yellow-100 text-yellow-800 print:border-yellow-800';
+            case 'activo':
+            default:
+                return 'bg-green-100 text-green-800 print:border-green-800';
+        }
+    };
+
+    const formattedPrice = price != null 
+        ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(price)
+        : 'Gratis';
 
     return (
         <div
@@ -27,11 +46,11 @@ export default function TicketReceipt({ event, type, uniqueCode }) {
             <div className="p-6 flex-1 sm:w-2/3 flex flex-col justify-between">
                 <div>
                     <div className="flex justify-between items-start mb-4">
-                        <h3 className="text-xl font-bold text-gray-900 leading-tight">
+                        <h3 className="text-xl font-bold text-gray-900 leading-tight pr-4">
                             {event?.name || 'Evento sin nombre'}
                         </h3>
-                        <span className="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide print:border print:border-green-800">
-                            Pagado
+                        <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide print:border ${getStatusStyles(status)}`}>
+                            {status || 'Activo'}
                         </span>
                     </div>
 
@@ -48,25 +67,41 @@ export default function TicketReceipt({ event, type, uniqueCode }) {
                 </div>
 
                 {/* Contenedor inferior: Detalles + Botón Imprimir */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="bg-gray-50 rounded-xl p-4 flex-1 flex justify-between items-center border border-gray-100 print:bg-white print:border-gray-300">
-                        <div>
-                            <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Tipo de Entrada</p>
-                            <p className="font-bold text-gray-900">{type || 'General'}</p>
+                <div className="flex flex-col sm:flex-row gap-4 items-end">
+                    
+                    {/* Detalles en formato de lista (Filas) */}
+                    <div className="bg-gray-50 rounded-xl p-4 flex-1 w-full flex flex-col gap-2 border border-gray-100 print:bg-white print:border-gray-300">
+                        
+                        {/* Fila 1: Tipo de Entrada */}
+                        <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">Entrada</span>
+                            <span className="font-bold text-gray-900 text-sm">{type || 'General'}</span>
                         </div>
-                        <div className="text-right">
-                            <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Pase</p>
-                            <p className="font-bold text-gray-900 flex items-center justify-end">
-                                <Ticket size={16} className="mr-1 text-blue-600" />
+                        
+                        <div className="border-b border-dashed border-gray-200 print:border-gray-300"></div>
+                        
+                        {/* Fila 2: Valor */}
+                        <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">Valor</span>
+                            <span className="font-bold text-gray-900 text-sm">{formattedPrice}</span>
+                        </div>
+
+                        <div className="border-b border-dashed border-gray-200 print:border-gray-300"></div>
+                        
+                        {/* Fila 3: Pase */}
+                        <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">Pase</span>
+                            <span className="font-bold text-gray-900 text-sm flex items-center gap-1">
+                                <Ticket size={14} className="text-blue-600" />
                                 Individual
-                            </p>
+                            </span>
                         </div>
                     </div>
 
-                    {/* 4. BOTÓN DE IMPRIMIR (se oculta en el papel con print:hidden) */}
+                    {/* BOTÓN DE IMPRIMIR */}
                     <button
                         onClick={handlePrint}
-                        className="print:hidden flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 px-5 rounded-xl transition-colors border border-gray-200 sm:w-auto w-full"
+                        className="print:hidden flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 px-5 rounded-xl transition-colors border border-gray-200 sm:w-auto w-full h-fit shrink-0"
                         title="Imprimir esta entrada"
                     >
                         <Printer size={18} />
