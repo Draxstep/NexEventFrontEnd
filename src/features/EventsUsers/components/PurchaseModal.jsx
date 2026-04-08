@@ -10,6 +10,7 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
 
   const [ticketQuantities, setTicketQuantities] = useState({});
   const [validationError, setValidationError] = useState(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -103,6 +104,12 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
       setValidationError("Selecciona al menos una entrada para continuar.");
       return;
     }
+
+    setShowConfirmModal(true);
+  };
+
+  const executeFinalPurchase = async () => {
+    setShowConfirmModal(false);
 
     const detallesCompra = Object.entries(ticketQuantities).map(([ticketIdStr, cantidad]) => {
       const ticket = ticketTypes.find(t => String(t.id) === ticketIdStr);
@@ -263,7 +270,7 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
                   </span>
                 </div>
                 <button
-                  onClick={handlePurchase}
+                  onClick={handleInitiatePurchase}
                   disabled={totalSelectedTickets === 0 || loading || ticketTypes.length === 0}
                   className="bg-blue-600 text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-sm"
                 >
@@ -283,6 +290,17 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
         </div>
       </div>
     </div>
+
+    {/* RENDERIZADO DEL MODAL DE CONFIRMACIÓN */}
+    <ModalConfirmacion
+      isOpen={showConfirmModal}
+      titulo="Confirmar Compra"
+      mensaje={`¿Estás seguro que deseas comprar ${totalSelectedTickets} entrada(s) por un total de $${totalPrice.toLocaleString("es-CO")}?`}
+      onConfirm={executeFinalPurchase}
+      onCancel={() => setShowConfirmModal(false)}
+      isDanger={false}
+    />
+    </>
   );
 };
 
