@@ -115,6 +115,8 @@ export default function CustomerPurchases() {
                                             event={purchase.event}
                                             type={ticket.type}
                                             uniqueCode={ticket.uniqueCode}
+                                            price={ticket.valor} 
+                                            status={ticket.estado}
                                         />
                                     </div>
                                 ))}
