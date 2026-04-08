@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { Ticket, ArrowRight, Receipt, AlertCircle, Printer } from 'lucide-react';
+import React, { useRef, useState, useMemo, useEffect } from 'react';
+import { Ticket, ArrowRight, Receipt, AlertCircle, Printer, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import QRCode from 'react-qr-code';
 import TicketReceipt from '../components/TicketReceipt';
@@ -11,13 +11,44 @@ export default function CustomerPurchases() {
     const { user } = useUser();
     const { purchases, loadingPurchases, errorPurchases, fetchPurchases } = usePurchase();
     
+
+    const [searchTerm, setSearchTerm] = useState('');
     const allTicketsRef = useRef(null);
+
+    const uniqueEventNames = useMemo(() => {
+        if (!purchases) return [];
+        const names = purchases.map(p => p.event.name);
+        return [...new Set(names)];
+    }, [purchases]);
+
+    const suggestedEvent = useMemo(() => {
+        if (!searchTerm.trim()) return '';
+        const match = uniqueEventNames.find(eventName =>
+            eventName.toLowerCase().startsWith(searchTerm.toLowerCase())
+        );
+        return match || '';
+    }, [searchTerm, uniqueEventNames]);
+
+    const filteredPurchases = useMemo(() => {
+        if (!searchTerm.trim()) return purchases;
+        return purchases.filter(p => 
+            p.event.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [purchases, searchTerm]);
 
     const handlePrintAll = useReactToPrint({
         contentRef: allTicketsRef,
-        documentTitle: `Todas_Mis_Entradas_NexEvent`,
+        documentTitle: `Mis_Entradas_NexEvent`,
     });
     
+
+    const handleKeyDown = (e) => {
+        if ((e.key === 'Tab' || e.key === 'Enter') && suggestedEvent) {
+            e.preventDefault(); // Evita que el Tab cambie de input
+            setSearchTerm(suggestedEvent);
+        }
+    };
+
     useEffect(() => {
         if (user?.id) {
             fetchPurchases(user.id);
@@ -26,7 +57,7 @@ export default function CustomerPurchases() {
 
     return (
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
-            
+
             {/* CABECERA PRINCIPAL */}
             <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
@@ -38,16 +69,58 @@ export default function CustomerPurchases() {
                 </div>
 
                 {/* BOTÓN DE IMPRIMIR TODAS */}
-                {purchases.length > 0 && (
+                {filteredPurchases?.length > 0 && (
                     <button 
                         onClick={handlePrintAll}
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition-colors shadow-sm w-full sm:w-auto"
+                        className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition-colors shadow-sm w-full sm:w-auto"
                     >
                         <Printer size={20} />
-                        <span>Imprimir Todas</span>
+                        <span>Imprimir {searchTerm ? 'Resultados' : 'Todas'}</span>
                     </button>
                 )}
             </div>
+
+            {/* BUSCADOR DIRECTO EN TIEMPO REAL CON SUGERENCIA */}
+            {!loadingPurchases && !errorPurchases && purchases?.length > 0 && (
+                <div className="mb-8 w-full sm:max-w-md print:hidden relative">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Buscar por evento</label>
+                    <div className="relative flex items-center">
+                        <Search size={20} className="absolute left-4 z-20 text-gray-400" />
+                        
+                        {/* Texto fantasma (Sugerencia) que se ubica detrás del input */}
+                        {suggestedEvent && (
+                            <div className="absolute left-12 right-10 flex items-center text-gray-400 pointer-events-none z-0 truncate">
+                                {/* Mantiene el espaciado exacto de lo que el usuario ha escrito */}
+                                <span className="opacity-0">{searchTerm}</span>
+                                {/* Muestra el resto de la palabra sugerida */}
+                                <span>{suggestedEvent.slice(searchTerm.length)}</span>
+                                <span className="ml-2 text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded border border-gray-200">
+                                    Tab ↹
+                                </span>
+                            </div>
+                        )}
+
+                        <input
+                            type="text"
+                            placeholder="Escribe el nombre del evento..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            className="w-full bg-transparent border border-gray-300 text-gray-900 rounded-xl pl-12 pr-10 py-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all z-10"
+                        />
+                        
+                        {searchTerm && (
+                            <button 
+                                onClick={() => setSearchTerm('')}
+                                className="absolute right-4 z-20 text-gray-400 hover:text-gray-700 font-bold bg-white"
+                                title="Limpiar búsqueda"
+                            >
+                                ✕
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Manejo de Estados: Cargando, Error o Vacío/Lleno */}
             {loadingPurchases ? (
@@ -72,10 +145,19 @@ export default function CustomerPurchases() {
                         Explorar eventos <ArrowRight size={18} className="ml-2" />
                     </Link>
                 </div>
+            ) : filteredPurchases.length === 0 ? (
+                <div className="text-center py-12 text-gray-500 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50">
+                    <p className="text-lg font-medium text-gray-600">No encontramos compras para "{searchTerm}"</p>
+                    <button 
+                        onClick={() => setSearchTerm('')} 
+                        className="mt-3 text-blue-600 font-semibold hover:underline"
+                    >
+                        Limpiar búsqueda
+                    </button>
+                </div>
             ) : (
                 <div ref={allTicketsRef} className="space-y-12 print:bg-white print:p-4">
-                    
-                    {purchases.map((purchase) => (
+                    {filteredPurchases.map((purchase) => (
                         <div key={purchase.purchaseId} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 print:shadow-none print:border-none print:mb-8">
 
                             {/* CABECERA DE LA ORDEN DE COMPRA */}
@@ -106,7 +188,7 @@ export default function CustomerPurchases() {
 
                             {/* LISTA DE BOLETOS INDIVIDUALES DE ESTA COMPRA */}
                             <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">
-                                Tus Entradas ({purchase.tickets.length})
+                                Entradas para {purchase.event.name} ({purchase.tickets.length})
                             </h3>
                             <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 print:block">
                                 {purchase.tickets.map((ticket) => (
