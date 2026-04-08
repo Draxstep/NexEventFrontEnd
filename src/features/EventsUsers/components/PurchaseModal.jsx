@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo} from "react";
 import { X, CheckCircle, AlertCircle, Ticket, Plus, Minus, Loader2 } from "lucide-react";
 import { usePurchase } from "../hooks/usePurchase";
-import ModalConfirmacion from "../../EventsAdmin/components/ModalConfirmation";
+import PurchaseInvoice from "./PurchaseInvoice";
+import { useUser } from '@clerk/clerk-react';
 
 const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
+  const { isLoaded, isSignedIn, user } = useUser();
   const { loading, error, isSuccess, executePurchase, resetPurchase } = usePurchase();
 
   const [ticketQuantities, setTicketQuantities] = useState({});
@@ -61,6 +63,17 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
   }, 0);
 
   const totalSelectedTickets = Object.values(ticketQuantities).reduce((sum, qty) => sum + qty, 0);
+  
+  const invoiceDetails = useMemo(() => {
+    return Object.entries(ticketQuantities).map(([ticketIdStr, cantidad]) => {
+      const ticket = ticketTypes.find(t => String(t.id) === ticketIdStr);
+      return {
+        nombre: ticket?.nombre,
+        precio: ticket?.precio,
+        cantidad: cantidad
+      };
+    });
+  }, [ticketQuantities, ticketTypes]);
 
   if (!isOpen || !event) return null;
 
@@ -79,9 +92,7 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
     });
   };
 
-  if (!isOpen || !event) return null;
-
-  const handleInitiatePurchase = () => {
+  const handlePurchase = async () => {
     setValidationError(null);
 
     if (!currentUser?.id) {
@@ -123,9 +134,8 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
   };
 
   return (
-    <>
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity print:static print:bg-transparent">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative print:shadow-none print:overflow-visible print:max-w-none">
 
         {/* HEADER */}
         <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
@@ -143,21 +153,25 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
         </div>
 
         {/* BODY */}
-        <div className="p-6 max-h-[80vh] overflow-y-auto">
+        <div className="p-6 max-h-[80vh] overflow-y-auto print:max-h-none print:overflow-visible print:p-0">
 
           {/* PANTALLA DE ÉXITO */}
           {isSuccess ? (
-            <div className="flex flex-col items-center justify-center py-6 text-center">
-              <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">¡Purchase Successful!</h3>
-              <p className="text-gray-600 mb-6">
-                Your tickets for <strong>{event.nombre}</strong> have been secured.
-              </p>
+            <div className="flex flex-col items-center">
+              <div className="w-full mb-6">
+                <PurchaseInvoice
+                  event={event}
+                  currentUser={{nombre: user.fullName || user.firstName || "Usuario Invitado"}}
+                  purchaseDetails={invoiceDetails}
+                  total={totalPrice}
+                />
+              </div>
+
               <button
                 onClick={handleCloseAfterSuccess}
-                className="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                className="w-full bg-gray-800 text-white font-bold py-3 rounded-xl hover:bg-black transition-all shadow-lg mb-4"
               >
-                Close Window
+                Finalizar y Volver al Inicio
               </button>
             </div>
           ) : (
