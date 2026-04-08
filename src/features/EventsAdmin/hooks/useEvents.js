@@ -181,10 +181,7 @@ export const useEvents = () => {
     try {
       await updateEvent(updatedEvent.id, updatedEvent);
 
-      if (
-        Array.isArray(updatedEvent?.tipos_entrada) &&
-        updatedEvent.tipos_entrada.length > 0
-      ) {
+      if (Array.isArray(updatedEvent?.tipos_entrada)) {
         await configureEventTicketTypes(
           updatedEvent.id,
           updatedEvent.tipos_entrada
@@ -221,6 +218,7 @@ export const useEvents = () => {
         ticketConfig = normalizedAvailability
           .map((item) => ({
             id: Number(item?.tipo_entrada_id),
+            tipo_entrada_id: Number(item?.tipo_entrada_id), 
             nombre:
               item?.tipo_entrada?.nombre ||
               item?.TipoEntrada?.nombre ||
