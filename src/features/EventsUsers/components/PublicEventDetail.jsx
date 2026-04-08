@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Calendar, Clock, MapPin, DollarSign, Heart, Loader2, Ticket } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, MapPin, DollarSign, Heart, Loader2, Ticket, ShieldAlert } from 'lucide-react';
 import { useUser } from "@clerk/clerk-react";
 import PurchaseModal from './PurchaseModal';
 
@@ -7,7 +7,9 @@ const PublicEventDetail = ({ evento, onVolver, onInteres, isInterested, onElimin
   const [isProcessing, setIsProcessing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { user } = useUser();
+  const { isLoaded, isSignedIn, user } = useUser();
+  const userRole = user?.publicMetadata?.role || "cliente";
+  const isAdmin = userRole === "admin";
 
   const handleInteresClick = async () => {
     if (!evento || isProcessing || readOnly) return;
@@ -139,48 +141,62 @@ const PublicEventDetail = ({ evento, onVolver, onInteres, isInterested, onElimin
 
           {/* CTA Y BOTONES */}
           {!readOnly && (
-            <div className="mt-auto border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50 p-6 rounded-xl border border-gray-100">
-              <div className="mb-4 sm:mb-0">
-                <p className="font-bold text-gray-800">
-                  {isSoldOut ? "¡Entradas Agotadas!" : "¿Te gustaría asistir?"}
-                </p>
-                <p className="text-sm text-gray-500">
-                  {isSoldOut 
-                  ? "Lo sentimos, ya no quedan cupos disponibles para este evento." 
-                  : "Haznos saber si te interesa este evento."}
-                </p>
-              </div>
+            <div className="mt-auto border-t pt-6">
+              {isAdmin ? (
+                <div className="bg-yellow-50 border border-yellow-200 p-4 sm:p-5 rounded-xl flex items-start sm:items-center gap-3 sm:gap-4 text-yellow-800 w-full shadow-sm">
+                  <ShieldAlert className="w-8 h-8 flex-shrink-0 mt-1 sm:mt-0" />
+                  <div>
+                    <p className="font-bold text-base sm:text-lg">Modo Administrador Activo</p>
+                    <p className="text-sm opacity-90 mt-0.5">
+                      Por seguridad y consistencia de datos, los administradores no pueden registrar interés ni comprar entradas en la plataforma.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50 p-6 rounded-xl border border-gray-100">
+                  <div className="mb-4 sm:mb-0 w-full sm:w-auto">
+                    <p className="font-bold text-gray-800">
+                      {isSoldOut ? "¡Entradas Agotadas!" : "¿Te gustaría asistir?"}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {isSoldOut 
+                        ? "Lo sentimos, ya no quedan cupos disponibles para este evento." 
+                        : "Haznos saber si te interesa este evento."}
+                    </p>
+                  </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                {/* Botón de Interés */}
-                <button
-                  onClick={handleInteresClick}
-                  disabled={isProcessing}
-                  className={`w-full sm:w-auto px-5 py-2.5 rounded-xl flex items-center justify-center font-bold text-sm sm:text-base whitespace-nowrap transition-all duration-300 shadow-sm ${
-                    isInterested  
-                    ? 'bg-gray-400 text-white hover:bg-gray-500 active:scale-95'
-                      : 'bg-blue-500 text-white hover:bg-blue-600 active:scale-95'
-                    }`}
-                >
-                  {isProcessing ? (
-                    <><Loader2 size={20} className="animate-spin mr-2" /> Procesando...</>
-                  ) : isInterested ? (
-                    <><Heart size={20} className="mr-2 fill-current" /> Quitar interés</>
-                  ) : (
-                    <><Heart size={20} className="mr-2" /> ¡Estoy interesado!</>
-                  )}
-                </button>
+                  <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto shrink-0">
+                    {/* Botón de Interés */}
+                    <button
+                      onClick={handleInteresClick}
+                      disabled={isProcessing}
+                      className={`w-full sm:w-auto px-5 py-2.5 rounded-xl flex items-center justify-center font-bold text-sm sm:text-base whitespace-nowrap transition-all duration-300 shadow-sm ${
+                        isInterested  
+                        ? 'bg-gray-400 text-white hover:bg-gray-500 active:scale-95'
+                          : 'bg-blue-500 text-white hover:bg-blue-600 active:scale-95'
+                      }`}
+                    >
+                      {isProcessing ? (
+                        <><Loader2 size={20} className="animate-spin mr-2" /> Procesando...</>
+                      ) : isInterested ? (
+                        <><Heart size={20} className="mr-2 fill-current" /> Quitar interés</>
+                      ) : (
+                        <><Heart size={20} className="mr-2" /> ¡Estoy interesado!</>
+                      )}
+                    </button>
 
-                {/* Botón de Compra */}
-                {showBuyButton && (
-                  <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="w-full sm:w-auto px-6 py-2.5 rounded-xl flex items-center justify-center font-bold text-sm sm:text-base whitespace-nowrap transition-all duration-300 shadow-sm bg-blue-600 text-white hover:bg-blue-700 active:scale-95"
-                  >
-                    <Ticket size={18} className="mr-2" /> Comprar Entradas
-                  </button>
-                )}
-              </div>
+                    {/* Botón de Compra */}
+                    {showBuyButton && (
+                      <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="w-full sm:w-auto px-6 py-2.5 rounded-xl flex items-center justify-center font-bold text-sm sm:text-base whitespace-nowrap transition-all duration-300 shadow-sm bg-blue-600 text-white hover:bg-blue-700 active:scale-95"
+                      >
+                        <Ticket size={18} className="mr-2" /> Comprar Entradas
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
