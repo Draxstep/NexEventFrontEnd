@@ -111,10 +111,34 @@ const EventForm = ({
   };
 
   const removeTicketType = (id) => {
+    const ticketToDelete = formData.tipos_entrada.find(t => (t.id || t.tipo_entrada_id || t) === id);
+
+    if (ticketToDelete && (ticketToDelete.cantidad_vendida > 0)) {
+      alert(`No puedes eliminar la entrada "${ticketToDelete.nombre}" porque ya tiene ${ticketToDelete.cantidad_vendida} ventas registradas.`);
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
-      tipos_entrada: prev.tipos_entrada.filter(t => (t.id || t) !== id)
+      tipos_entrada: prev.tipos_entrada.filter(t => (t.id || t.tipo_entrada_id || t) !== id)
     }));
+  };
+
+  const handleTicketsChange = (updatedTickets) => {
+    const enforcedTickets = updatedTickets.map(updatedTicket => {
+      const originalTicket = formData.tipos_entrada.find(t => (t.id || t) === (updatedTicket.id || updatedTicket));
+      
+      if (originalTicket && (originalTicket.cantidad_vendida > 0)) {
+        return {
+          ...updatedTicket,
+          precio: originalTicket.precio // Revertimos al precio original silenciosamente
+        };
+      }
+      
+      return updatedTicket;
+    });
+
+    handleChange("tipos_entrada", enforcedTickets);
   };
 
   useEffect(() => {
@@ -453,7 +477,7 @@ const EventForm = ({
             {/* Editor de Tickets: Precios y Capacidades */}
             <EventTicketTypesEditor
               tickets={formData.tipos_entrada}
-              onChange={(updatedTickets) => handleChange("tipos_entrada", updatedTickets)}
+              onChange={handleTicketsChange}
               onRemove={removeTicketType}
             />
           </div>
