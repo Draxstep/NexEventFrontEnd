@@ -1,19 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { X, CheckCircle, AlertCircle, Ticket, Plus, Minus, Loader2 } from "lucide-react";
-import { usePurchase } from "../hooks/usePurchase"; 
+import { usePurchase } from "../hooks/usePurchase";
 
 const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
   const { loading, error, isSuccess, executePurchase, resetPurchase } = usePurchase();
 
-  const [selectedTicketId, setSelectedTicketId] = useState("");
-  const [quantity, setQuantity] = useState(1);
+  const [ticketQuantities, setTicketQuantities] = useState({});
   const [validationError, setValidationError] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
       resetPurchase();
-      setSelectedTicketId("");
-      setQuantity(1);
+      setTicketQuantities({});
       setValidationError(null);
     }
   }, [isOpen, resetPurchase]);
@@ -54,16 +52,30 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
       };
     })
     .filter((ticket) => ticket.tipo_entrada_id > 0);
-  
-  const selectedTicket = ticketTypes.find((t) => String(t.id) === selectedTicketId);
-  const maxQuantity = selectedTicket ? Math.max(Number(selectedTicket.disponibles) || 0, 0) : 0;
-  const totalPrice = selectedTicket ? selectedTicket.precio * quantity : 0;
 
-  useEffect(() => {
-    if (selectedTicket && maxQuantity > 0 && quantity > maxQuantity) {
-      setQuantity(maxQuantity);
-    }
-  }, [selectedTicket, maxQuantity, quantity]);
+  const totalPrice = ticketTypes.reduce((sum, ticket) => {
+    const qty = ticketQuantities[ticket.id] || 0;
+    return sum + (ticket.precio * qty);
+  }, 0);
+
+  const totalSelectedTickets = Object.values(ticketQuantities).reduce((sum, qty) => sum + qty, 0);
+
+  if (!isOpen || !event) return null;
+
+  // 3. FUNCIÓN PARA ACTUALIZAR CANTIDAD INDIVIDUAL
+  const updateQuantity = (ticketId, delta, maxAvailable) => {
+    setTicketQuantities((prev) => {
+      const currentQty = prev[ticketId] || 0;
+      const newQty = Math.max(0, Math.min(currentQty + delta, maxAvailable));
+
+      const newState = { ...prev, [ticketId]: newQty };
+      // Limpiar keys con valor 0 para no enviar basura
+      if (newQty === 0) {
+        delete newState[ticketId];
+      }
+      return newState;
+    });
+  };
 
   if (!isOpen || !event) return null;
 
@@ -75,30 +87,23 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
       return;
     }
 
-    if (!selectedTicket || quantity < 1) {
-      setValidationError("Selecciona un tipo de entrada válido.");
+    if (totalSelectedTickets === 0) {
+      setValidationError("Selecciona al menos una entrada para continuar.");
       return;
     }
 
-    if (maxQuantity <= 0) {
-      setValidationError("Este tipo de entrada está agotado.");
-      return;
-    }
-
-    if (quantity > maxQuantity) {
-      setValidationError(`Solo hay ${maxQuantity} entradas disponibles para este tipo.`);
-      return;
-    }
+    const detallesCompra = Object.entries(ticketQuantities).map(([ticketIdStr, cantidad]) => {
+      const ticket = ticketTypes.find(t => String(t.id) === ticketIdStr);
+      return {
+        tipo_entrada_id: Number(ticket.tipo_entrada_id),
+        cantidad: Number(cantidad),
+      };
+    });
 
     const payload = {
-      usuario_id: currentUser?.id, 
+      usuario_id: currentUser?.id,
       evento_id: event.id,
-      detallesCompra: [
-        {
-          tipo_entrada_id: Number(selectedTicket.tipo_entrada_id),
-          cantidad: Number(quantity),
-        }
-      ]
+      detallesCompra
     };
 
     await executePurchase(payload);
@@ -112,15 +117,15 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative">
-        
+
         {/* HEADER */}
         <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
           <h2 className="text-lg font-bold text-gray-800 flex items-center">
             <Ticket className="w-5 h-5 mr-2 text-blue-600" />
             Buy Tickets
           </h2>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             disabled={loading}
             className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
           >
@@ -129,8 +134,8 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
         </div>
 
         {/* BODY */}
-        <div className="p-6">
-          
+        <div className="p-6 max-h-[80vh] overflow-y-auto">
+
           {/* PANTALLA DE ÉXITO */}
           {isSuccess ? (
             <div className="flex flex-col items-center justify-center py-6 text-center">
@@ -163,44 +168,68 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
               )}
 
               {/* SELECCIÓN DE ENTRADA */}
-              <div className="mb-5">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Select Ticket Type</label>
-                <div className="space-y-2">
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Select Tickets</label>
+                <div className="space-y-3">
                   {ticketTypes.map((ticket) => {
                     const isSoldOut = Number(ticket.disponibles) <= 0;
+                    const currentQty = ticketQuantities[ticket.id] || 0;
+                    const isMaxReached = currentQty >= ticket.disponibles;
+
                     return (
-                      <label 
-                        key={ticket.id} 
-                        className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all ${
-                          selectedTicketId === String(ticket.id) 
-                            ? "border-blue-500 bg-blue-50 ring-1 ring-blue-500" 
-                            : "border-gray-200 hover:border-gray-300"
-                        } ${isSoldOut ? "opacity-50 cursor-not-allowed bg-gray-50" : ""}`}
+                      <div
+                        key={ticket.id}
+                        className={`flex flex-col p-4 border rounded-lg transition-all ${currentQty > 0
+                            ? "border-blue-500 bg-blue-50 ring-1 ring-blue-500"
+                            : "border-gray-200"
+                          } ${isSoldOut ? "opacity-60 bg-gray-50" : ""}`}
                       >
-                        <div className="flex items-center">
-                          <input
-                            type="radio"
-                            name="ticketType"
-                            value={ticket.id}
-                            disabled={isSoldOut}
-                            checked={selectedTicketId === String(ticket.id)}
-                            onChange={(e) => setSelectedTicketId(e.target.value)}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 disabled:opacity-50"
-                          />
-                          <span className="ml-3 font-medium text-gray-900">
-                            {ticket.nombre || "General Entry"}
-                          </span>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-gray-900">
+                              {ticket.nombre || "General Entry"}
+                            </span>
+                            <span className="text-sm text-gray-500">
+                              ${ticket.precio.toLocaleString("es-CO")}
+                            </span>
+                          </div>
                         </div>
+
                         <div className="text-right">
-                          <span className="block font-bold text-gray-900">
-                            ${ticket.precio.toLocaleString("es-CO")}
-                          </span>
-                          {!isSoldOut && (
-                            <span className="text-xs text-gray-500">{ticket.disponibles} disp.</span>
+                          {!isSoldOut ? (
+                            <span className="text-xs text-gray-500 font-medium">
+                              {ticket.disponibles} disp.
+                            </span>
+                          ) : (
+                            <span className="text-xs text-red-500 font-bold uppercase">Sold Out</span>
                           )}
-                          {isSoldOut && <span className="text-xs text-red-500 font-semibold uppercase">Sold Out</span>}
                         </div>
-                      </label>
+
+                        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                          <span className="text-sm font-medium text-gray-700">Quantity</span>
+                          <div className="flex items-center bg-white border border-gray-300 rounded-lg overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(ticket.id, -1, ticket.disponibles)}
+                              disabled={currentQty === 0 || loading}
+                              className="p-2 text-gray-600 hover:bg-gray-100 disabled:opacity-30 transition-colors"
+                            >
+                              <Minus size={16} />
+                            </button>
+                            <span className="w-10 text-center font-semibold text-gray-900">
+                              {currentQty}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(ticket.id, 1, ticket.disponibles)}
+                              disabled={isSoldOut || isMaxReached || loading}
+                              className="p-2 text-gray-600 hover:bg-gray-100 disabled:opacity-30 transition-colors"
+                            >
+                              <Plus size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     );
                   })}
                   {ticketTypes.length === 0 && (
@@ -209,38 +238,8 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
                 </div>
               </div>
 
-              {/* CONTROLES DE CANTIDAD */}
-              <div className="mb-6 flex items-center justify-between">
-                <label className="block text-sm font-medium text-gray-700">Quantity</label>
-                <div className="flex items-center border border-gray-300 rounded-lg">
-                  <button
-                    type="button"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    disabled={!selectedTicketId || loading}
-                    className="p-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 rounded-l-lg transition-colors"
-                  >
-                    <Minus size={16} />
-                  </button>
-                  <span className="w-12 text-center font-semibold text-gray-900">{quantity}</span>
-                  <button
-                    type="button"
-                    onClick={() => setQuantity(Math.min(maxQuantity || 1, quantity + 1))}
-                    disabled={!selectedTicketId || loading || maxQuantity <= 0 || quantity >= maxQuantity}
-                    className="p-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 rounded-r-lg transition-colors"
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
-              </div>
-
-              {selectedTicket && (
-                <p className="text-xs text-gray-500 -mt-4 mb-6 text-right">
-                  Máximo disponible: {maxQuantity}
-                </p>
-              )}
-
               {/* TOTAL Y BOTÓN DE PAGO */}
-              <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
+              <div className="pt-4 border-t border-gray-200 flex items-center justify-between sticky bottom-0 bg-white">
                 <div>
                   <span className="block text-sm text-gray-500">Total Price</span>
                   <span className="block text-2xl font-bold text-gray-900">
@@ -249,8 +248,8 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
                 </div>
                 <button
                   onClick={handlePurchase}
-                  disabled={!selectedTicketId || loading || ticketTypes.length === 0}
-                  className="bg-blue-600 text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                  disabled={totalSelectedTickets === 0 || loading || ticketTypes.length === 0}
+                  className="bg-blue-600 text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-sm"
                 >
                   {loading ? (
                     <>
