@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import {
   getActiveEvents,
+  getCompletedEvents,
   getActiveEventById,
   getEventTicketAvailability,
   registrarInteres as registrarInteresService,
@@ -86,12 +87,6 @@ const buildLocalEventDateTime = (fecha, hora) => {
   return d;
 };
 
-const isPastEvent = (fecha, hora, now = new Date()) => {
-  const dt = buildLocalEventDateTime(fecha, hora);
-  if (!dt) return false;
-  return dt.getTime() < now.getTime();
-};
-
 
 export const useEventsUsers = () => {
   const { isSignedIn } = useAuth();
@@ -99,7 +94,8 @@ export const useEventsUsers = () => {
   const [interesado, setInteresado] = useState(false);
 
   const [conteo, setConteo] = useState(0);
-  const [eventosOriginales, setEventosOriginales] = useState([]);
+  const [eventosActivosOriginales, setEventosActivosOriginales] = useState([]);
+  const [eventosCompletadosOriginales, setEventosCompletadosOriginales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -153,14 +149,16 @@ export const useEventsUsers = () => {
   //  Extraer categorías únicas
   const categoriasDisponibles = useMemo(() => {
     const categoriasSet = new Set(
-      eventosOriginales.map((e) => e.categoria).filter(Boolean)
+      [...eventosActivosOriginales, ...eventosCompletadosOriginales]
+        .map((e) => e.categoria)
+        .filter(Boolean)
     );
     return Array.from(categoriasSet).sort();
-  }, [eventosOriginales]);
+  }, [eventosActivosOriginales, eventosCompletadosOriginales]);
 
-  //  Aplicar filtros
-  const eventosFiltrados = useMemo(() => {
-    const filtered = eventosOriginales.filter((e) => {
+  const filterEvents = useCallback(
+    (events = []) =>
+      events.filter((e) => {
       const term = filters.search.toLowerCase();
 
       const matchSearch =
@@ -173,65 +171,38 @@ export const useEventsUsers = () => {
         : true;
 
       return matchSearch && matchCategoria;
-    });
+      }),
+    [filters]
+  );
 
-    // Orden UX: próximos primero (fecha asc). Finalizados al final.
-    // Para finalizados, se muestran del más reciente al más antiguo.
-    const now = new Date();
-    return [...filtered].sort((a, b) => {
-      const aPast = isPastEvent(a.fecha, a.hora, now);
-      const bPast = isPastEvent(b.fecha, b.hora, now);
+  const sortByDateAsc = useCallback((a, b) => {
+    const aDt = buildLocalEventDateTime(a.fecha, a.hora);
+    const bDt = buildLocalEventDateTime(b.fecha, b.hora);
+    if (!aDt && !bDt) return 0;
+    if (!aDt) return 1;
+    if (!bDt) return -1;
+    return aDt.getTime() - bDt.getTime();
+  }, []);
 
-      if (aPast !== bPast) return aPast ? 1 : -1;
+  const sortByDateDesc = useCallback((a, b) => {
+    const aDt = buildLocalEventDateTime(a.fecha, a.hora);
+    const bDt = buildLocalEventDateTime(b.fecha, b.hora);
+    if (!aDt && !bDt) return 0;
+    if (!aDt) return 1;
+    if (!bDt) return -1;
+    return bDt.getTime() - aDt.getTime();
+  }, []);
 
-      const aDt = buildLocalEventDateTime(a.fecha, a.hora);
-      const bDt = buildLocalEventDateTime(b.fecha, b.hora);
+  // Próximos desde /eventos/activos e históricos desde /eventos/completados
+  const upcomingEvents = useMemo(() => {
+    const filtered = filterEvents(eventosActivosOriginales);
+    return [...filtered].sort(sortByDateAsc);
+  }, [eventosActivosOriginales, filterEvents, sortByDateAsc]);
 
-      if (!aDt && !bDt) return 0;
-      if (!aDt) return 1;
-      if (!bDt) return -1;
-
-      // Ambos próximos: asc. Ambos finalizados: desc.
-      const diff = aDt.getTime() - bDt.getTime();
-      return aPast ? -diff : diff;
-    });
-  }, [eventosOriginales, filters]);
-
-  //  Separar + ordenar: Próximos primero (asc), Históricos después (desc)
-  const { upcomingEvents, historicalEvents } = useMemo(() => {
-    const now = new Date();
-
-    const upcoming = [];
-    const historical = [];
-
-    for (const e of eventosFiltrados) {
-      if (isPastEvent(e.fecha, e.hora, now)) historical.push(e);
-      else upcoming.push(e);
-    }
-
-    const sortAsc = (a, b) => {
-      const aDt = buildLocalEventDateTime(a.fecha, a.hora);
-      const bDt = buildLocalEventDateTime(b.fecha, b.hora);
-      if (!aDt && !bDt) return 0;
-      if (!aDt) return 1;
-      if (!bDt) return -1;
-      return aDt.getTime() - bDt.getTime();
-    };
-
-    const sortDesc = (a, b) => {
-      const aDt = buildLocalEventDateTime(a.fecha, a.hora);
-      const bDt = buildLocalEventDateTime(b.fecha, b.hora);
-      if (!aDt && !bDt) return 0;
-      if (!aDt) return 1;
-      if (!bDt) return -1;
-      return bDt.getTime() - aDt.getTime();
-    };
-
-    return {
-      upcomingEvents: [...upcoming].sort(sortAsc),
-      historicalEvents: [...historical].sort(sortDesc),
-    };
-  }, [eventosFiltrados]);
+  const historicalEvents = useMemo(() => {
+    const filtered = filterEvents(eventosCompletadosOriginales);
+    return [...filtered].sort(sortByDateDesc);
+  }, [eventosCompletadosOriginales, filterEvents, sortByDateDesc]);
 
   //  Paginación (solo Próximos)
   const paginatedEvents = useMemo(() => {
@@ -261,16 +232,20 @@ export const useEventsUsers = () => {
     );
   };
 
-  //  Traer eventos activos reales
+  //  Traer eventos por estado desde backend
   const fetchEventos = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const data = await getActiveEvents();
-      const adapted = data.map(adaptEvent);
-      setEventosOriginales(adapted);
-    } catch (_err) {
+      const [activeData, completedData] = await Promise.all([
+        getActiveEvents(),
+        getCompletedEvents(),
+      ]);
+
+      setEventosActivosOriginales((activeData || []).map(adaptEvent));
+      setEventosCompletadosOriginales((completedData || []).map(adaptEvent));
+    } catch {
       setError("Error al cargar la cartelera de eventos.");
     } finally {
       setLoading(false);
@@ -383,7 +358,7 @@ export const useEventsUsers = () => {
       const data = await getEventosByUsuarioIdService(user.id);
 
       setEventosFavoritos(data);
-    } catch (_err) {
+    } catch {
       setErrorFavoritos("No se pudieron cargar tus favoritos.");
     } finally {
       setLoadingFavoritos(false);

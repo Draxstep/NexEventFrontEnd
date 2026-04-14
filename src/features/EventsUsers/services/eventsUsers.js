@@ -18,6 +18,16 @@ export const getActiveEvents = async () => {
   return response.json();
 };
 
+export const getCompletedEvents = async () => {
+  const response = await fetch(`${API_URL}/eventos/completados`);
+
+  if (!response.ok) {
+    throw new Error("Error al obtener eventos completados");
+  }
+
+  return response.json();
+};
+
 export const getActiveEventById = async (id) => {
   const response = await fetch(`${API_URL}/eventos/${id}`);
 

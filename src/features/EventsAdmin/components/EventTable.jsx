@@ -25,6 +25,21 @@ const EventTable = ({
   onPageChange,
 }) => {
 
+  const getStatusBadgeStyles = (status) => {
+    switch (status) {
+      case "Activo":
+        return "bg-green-100 text-green-800";
+      case "Completado":
+        return "bg-blue-100 text-blue-800";
+      case "Cancelado":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const isActiveStatus = (status) => status === "Activo";
+
   if (!events || events.length === 0) {
     return (
       <div className="p-12 text-center text-gray-500 bg-gray-50 rounded-b-lg border-t border-gray-200">
@@ -152,13 +167,11 @@ const EventTable = ({
                 {/* STATUS */}
                 <td className="px-4 py-4 whitespace-nowrap text-sm">
                   <span
-                    className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                    className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeStyles(
                       item.estado
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
+                    )}`}
                   >
-                    {item.estado ? "Active" : "Inactive"}
+                    {item.estado || "Sin estado"}
                   </span>
                 </td>
 
@@ -186,12 +199,12 @@ const EventTable = ({
                   <button
                     onClick={() => onToggleStatus(item)}
                     className={
-                      item.estado
+                      isActiveStatus(item.estado)
                         ? "text-red-500 hover:text-red-700"
                         : "text-green-500 hover:text-green-700"
                     }
                   >
-                    {item.estado ? (
+                    {isActiveStatus(item.estado) ? (
                       <Power size={18} />
                     ) : (
                       <RefreshCw size={18} />
