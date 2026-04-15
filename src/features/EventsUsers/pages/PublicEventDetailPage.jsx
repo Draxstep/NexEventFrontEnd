@@ -4,32 +4,7 @@ import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useEventsUsers } from '../hooks/useEventsUsers';
 import PublicEventDetail from '../components/PublicEventDetail';
 import { useClerk } from '@clerk/clerk-react';
-
-const buildLocalEventDateTime = (fecha, hora) => {
-  if (!fecha) return null;
-
-  const [year, month, day] = String(fecha).split('-').map(Number);
-  if (!year || !month || !day) return null;
-
-  const [hour, minute, second] = (hora ? String(hora) : '23:59:59').split(':').map(Number);
-
-  const d = new Date(
-    year,
-    month - 1,
-    day,
-    Number.isFinite(hour) ? hour : 23,
-    Number.isFinite(minute) ? minute : 59,
-    Number.isFinite(second) ? second : 59
-  );
-
-  return Number.isNaN(d.getTime()) ? null : d;
-};
-
-const isPastEvent = (fecha, hora, now = new Date()) => {
-  const dt = buildLocalEventDateTime(fecha, hora);
-  if (!dt) return false;
-  return dt.getTime() < now.getTime();
-};
+import { isHistoricalEventStatus } from '../utils/eventStatus';
 
 export default function PublicEventDetailPage() {
   const { id } = useParams();
@@ -69,7 +44,7 @@ export default function PublicEventDetailPage() {
         );
       }
 
-      const historical = isPastEvent(data.fecha, data.hora);
+      const historical = isHistoricalEventStatus(data.estado);
       setIsHistorical(historical);
 
       setEvento(data);
@@ -183,7 +158,7 @@ export default function PublicEventDetailPage() {
   }
 
   if (error || !evento) {
-    if (blocked) {
+    if (isHistorical) {
       return (
         <div className="w-full max-w-3xl mx-auto mt-12 px-4">
           <div className="bg-gray-50 border border-gray-200 p-8 rounded-xl text-center text-gray-700 animate-fade-in">
