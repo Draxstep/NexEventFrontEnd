@@ -124,13 +124,22 @@ export const updateEvent = async (id, data) => {
   }
 };
 
-export const toggleEventStatus = async (id) => {
+export const toggleEventStatus = async (id, estado) => {
+  if (!estado) {
+    throw new Error("Missing target status");
+  }
+
   const response = await fetch(`${API_URL}/eventos/${id}/estado`, {
     method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ estado }),
   });
 
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.error || "Failed to toggle status");
+  const result = await safeJson(response);
+  if (!response.ok) {
+    throw new Error(result?.error || result?.message || "Failed to update event status");
+  }
+
   return result;
 };
 
