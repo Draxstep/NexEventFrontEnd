@@ -1,8 +1,36 @@
-import { getAllEvents, getEventInterestRanking } from "./eventService";
+import { getAllEvents } from "./eventService";
 import { getSalesReportByEvent } from "./salesReportService";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+
+const safeJson = async (response) => {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+};
+
 export const getEventsByPopularity = async () => {
-  return getEventInterestRanking();
+  const response = await fetch(`${API_URL}/reportes/rank`);
+  const result = await safeJson(response);
+
+  if (!response.ok) {
+    throw new Error(
+      result?.error ||
+      result?.message ||
+      "Error al obtener ranking de eventos por interés."
+    );
+  }
+
+  if (!Array.isArray(result)) {
+    return [];
+  }
+
+  return result.map((event) => ({
+    ...event,
+    cantidadInteresados: Number(event?.total_intereses) || 0,
+  }));
 };
 
 export const getTopMostSoldEvents = async () => {
