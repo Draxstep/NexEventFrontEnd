@@ -32,21 +32,7 @@ export default function PublicEvents() {
     const fetchTopEvents = async () => {
       try {
         const data = await getTopSellingEvents();
-        const adapted = (data || []).map((event) => ({
-          id: event.id,
-          nombre: event.nombre,
-          fecha: event.fecha,
-          hora: event.hora,
-          departamento: event.Ciudad?.Departamento?.nombre || "",
-          ciudad: event.Ciudad?.nombre || "",
-          lugar: event.lugar,
-          categoria: event.Categorium?.nombre || event.Categoria?.nombre || event.categoria?.nombre || "",
-          descripcion: event.descripcion,
-          valor: event.valor,
-          estado: event.estado,
-          imagenUrl: event.imagen_url,
-        }));
-        setTopEvents(adapted);
+        setTopEvents(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Error al obtener los eventos populares:", err);
       } finally {
