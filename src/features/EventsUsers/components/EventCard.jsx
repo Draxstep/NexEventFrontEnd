@@ -1,33 +1,13 @@
 import React from 'react';
 import { Calendar, Clock, MapPin, Tag } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { isHistoricalEventStatus } from '../utils/eventStatus';
 
-const buildLocalEventDateTime = (fecha, hora) => {
-  if (!fecha) return null;
-
-  const [year, month, day] = String(fecha).split('-').map(Number);
-  if (!year || !month || !day) return null;
-
-  const [hour, minute, second] = (hora ? String(hora) : '23:59:59').split(':').map(Number);
-
-  return new Date(
-    year,
-    month - 1,
-    day,
-    Number.isFinite(hour) ? hour : 23,
-    Number.isFinite(minute) ? minute : 59,
-    Number.isFinite(second) ? second : 59
-  );
-};
-
-const isPastEvent = (fecha, hora, now = new Date()) => {
-  const eventDateTime = buildLocalEventDateTime(fecha, hora);
-  if (!eventDateTime) return false;
-  return eventDateTime.getTime() < now.getTime();
-};
-
-const EventCard = ({ evento }) => {
-  const past = isPastEvent(evento?.fecha, evento?.hora);
+const EventCard = ({ evento, isHistoricalSection }) => {
+  const isHistorical =
+    typeof isHistoricalSection === 'boolean'
+      ? isHistoricalSection
+      : isHistoricalEventStatus(evento?.estado);
 
   return (
     <Link
@@ -39,7 +19,7 @@ const EventCard = ({ evento }) => {
           <img 
             src={evento.imagenUrl} 
             alt={`Imagen de ${evento.nombre}`} 
-            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${past ? 'grayscale' : ''}`}
+            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${isHistorical ? 'grayscale' : ''}`}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400">Sin imagen</div>
@@ -71,7 +51,7 @@ const EventCard = ({ evento }) => {
         </div>
 
         <div className="pt-4 border-t border-gray-100 flex items-center justify-end mt-auto">
-          <span className={`text-sm font-medium ${past ? 'text-gray-500' : 'text-blue-600 group-hover:underline'}`}>
+          <span className={`text-sm font-medium ${isHistorical ? 'text-gray-500' : 'text-blue-600 group-hover:underline'}`}>
             Ver detalle
           </span>
         </div>

@@ -100,7 +100,7 @@ export default function PublicEvents() {
           <>
             {/* Próximos */}
             {eventos.length > 0 ? (
-              <EventGrid eventos={eventos} />
+              <EventGrid eventos={eventos} isHistoricalSection={false} />
             ) : (
               <div className="text-center py-14 text-gray-500">
                 <p className="text-lg font-medium">
@@ -172,7 +172,7 @@ export default function PublicEvents() {
                   </h2>
                 </div>
 
-                <EventGrid eventos={eventosHistoricosPaginados} />
+                <EventGrid eventos={eventosHistoricosPaginados} isHistoricalSection={true} />
 
                 {eventosHistoricosPaginados.length > 0 && totalHistoricalPages > 1 && (
                   <div className="mt-12 mb-2 flex justify-center items-center space-x-2 animate-fade-in">
