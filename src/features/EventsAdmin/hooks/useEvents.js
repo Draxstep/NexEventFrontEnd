@@ -111,7 +111,7 @@ export const useEvents = () => {
 
       const matchStatus =
         filters.status !== ""
-          ? e.estado === (filters.status === "active")
+          ? e.estado === filters.status
           : true;
 
       return matchSearch && matchStatus;
@@ -195,12 +195,13 @@ export const useEvents = () => {
     }
   };
 
-  const disableEvent = async (id) => {
+  const disableEvent = async (id, estado) => {
     try {
-      await toggleEventStatus(id);
+      await toggleEventStatus(id, estado);
       await fetchInitialData();
     } catch (err) {
       setError(err.message || "Error changing event status.");
+      throw err;
     }
   };
   

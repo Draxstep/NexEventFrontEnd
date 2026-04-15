@@ -114,7 +114,8 @@ export default function EventsManagement() {
   };
 
   const handleDisable = (event) => {
-    const isCurrentlyActive = event.estado !== false;
+    const isCurrentlyActive = event.estado === "Activo";
+    const targetStatus = isCurrentlyActive ? "Cancelado" : "Activo";
 
     setModal({
       isOpen: true,
@@ -125,7 +126,7 @@ export default function EventsManagement() {
       isDanger: isCurrentlyActive,
       onConfirm: async () => {
         try {
-          await disableEvent(event.id);
+          await disableEvent(event.id, targetStatus);
           showToast(
             isCurrentlyActive
               ? "Event disabled successfully."
