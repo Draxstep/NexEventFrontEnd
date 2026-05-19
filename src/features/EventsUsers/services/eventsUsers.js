@@ -134,27 +134,24 @@ export const getTopSellingEvents = async () => {
   return Array.isArray(data) ? data.slice(0, 3) : [];
 };
 
-export const purchaseTickets = async (purchaseData) => {
-    const response = await fetch(`${API_URL}/compras`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(purchaseData),
-    });
+export const purchaseTickets = async (payloadCompleto) => {
+  const response = await fetch(`${API_URL}/compras`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payloadCompleto)
+  });
 
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const errorData = await safeJson(response);
     throw new Error(
-      errorData.error ||
-      errorData.message ||
-      "Failed to process purchase"
+      errorData?.message ||
+      errorData?.error ||
+      "Error al procesar el pago"
     );
-    }
+  }
 
-    return response.json();
+  return await response.json();
 };
-
 export const getPurchaseHistory = async (usuario_id) => {
   const response = await fetch(`${API_URL}/compras/usuario/${usuario_id}/historial`);
 
@@ -175,4 +172,21 @@ export const getPurchaseDetails = async (compra_id) => {
   }
 
   return response.json();
+};
+
+export const validatePaymentInfo = async (cardData) => {
+  const response = await fetch(`${API_URL}/validar-tarjeta`, { 
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(cardData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.mensaje || errorData.error || "La tarjeta fue rechazada o es inválida.");
+  }
+
+  return await response.json();
 };
