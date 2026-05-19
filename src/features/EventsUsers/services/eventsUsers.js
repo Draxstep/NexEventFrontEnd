@@ -176,3 +176,20 @@ export const getPurchaseDetails = async (compra_id) => {
 
   return response.json();
 };
+
+export const validatePaymentInfo = async (cardData) => {
+  const response = await fetch('/api/validar-tarjeta', { 
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(cardData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.mensaje || errorData.error || "La tarjeta fue rechazada o es inválida.");
+  }
+
+  return await response.json();
+};

@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { purchaseTickets, getPurchaseHistory, getPurchaseDetails } from "../services/eventsUsers";
+import { purchaseTickets, getPurchaseHistory, getPurchaseDetails, validatePaymentInfo } from "../services/eventsUsers";
 
 export const usePurchase = () => {
     const [loading, setLoading] = useState(false);
@@ -90,11 +90,26 @@ export const usePurchase = () => {
         }
     }, []);
 
+    const processPurchaseWithValidation = async (purchasePayload, cardData) => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            await validatePaymentInfo(cardData);
+            await executePurchase(purchasePayload);
+
+        } catch (err) {
+            setError(err.message || "Ocurrió un error al procesar el pago.");
+            setLoading(false); 
+        }
+    };
+
     return {
         loading,
         error,
         isSuccess,
         executePurchase,
+        processPurchaseWithValidation,
         resetPurchase,
         purchases,
         loadingPurchases,
