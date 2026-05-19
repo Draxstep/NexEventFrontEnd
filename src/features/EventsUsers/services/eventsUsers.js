@@ -134,27 +134,23 @@ export const getTopSellingEvents = async () => {
   return Array.isArray(data) ? data.slice(0, 3) : [];
 };
 
-export const purchaseTickets = async (purchaseData) => {
-  try {
-    const response = await fetch('/api/compras', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(purchaseData)
-    });
+export const purchaseTickets = async (payloadCompleto) => {
+  const response = await fetch('/api/compras', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payloadCompleto)
+  });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Error al procesar el pago"); 
-    }
-    return await response.json();
+  if (!response.ok) {
+    // 1. Convertimos la respuesta del mapearErrorDominio a JSON
+    const errorData = await response.json();
     
-  } catch (error) {
-    throw new Error(error.message || "Error de conexión con el servidor");
+    // 2. Extraemos la propiedad "message" que manda tu backend
+    throw new Error(errorData.message || "Error al procesar el pago");
   }
-};
 
+  return await response.json();
+};
 export const getPurchaseHistory = async (usuario_id) => {
   const response = await fetch(`${API_URL}/compras/usuario/${usuario_id}/historial`);
 
