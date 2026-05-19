@@ -126,11 +126,10 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
       evento_id: event.id,
       detallesCompra,
       pago: {
-        tarjeta: cardData.cardNumber,
         franquicia: cardData.cardBrand,
-        titular: cardData.cardHolder,
-        expiracion: cardData.expiry,
-        cvc: cardData.cvc
+        numero_tarjeta: cardData.cardNumber,
+        cvc: cardData.cvc,
+        fecha_expiracion: cardData.expiry
       }
     };
 

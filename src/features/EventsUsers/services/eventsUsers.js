@@ -135,18 +135,19 @@ export const getTopSellingEvents = async () => {
 };
 
 export const purchaseTickets = async (payloadCompleto) => {
-  const response = await fetch('/api/compras', {
+  const response = await fetch(`${API_URL}/compras`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payloadCompleto)
   });
 
   if (!response.ok) {
-    // 1. Convertimos la respuesta del mapearErrorDominio a JSON
-    const errorData = await response.json();
-    
-    // 2. Extraemos la propiedad "message" que manda tu backend
-    throw new Error(errorData.message || "Error al procesar el pago");
+    const errorData = await safeJson(response);
+    throw new Error(
+      errorData?.message ||
+      errorData?.error ||
+      "Error al procesar el pago"
+    );
   }
 
   return await response.json();
@@ -174,7 +175,7 @@ export const getPurchaseDetails = async (compra_id) => {
 };
 
 export const validatePaymentInfo = async (cardData) => {
-  const response = await fetch('/api/validar-tarjeta', { 
+  const response = await fetch(`${API_URL}/validar-tarjeta`, { 
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
