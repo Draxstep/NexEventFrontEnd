@@ -135,24 +135,24 @@ export const getTopSellingEvents = async () => {
 };
 
 export const purchaseTickets = async (purchaseData) => {
-    const response = await fetch(`${API_URL}/compras`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(purchaseData),
+  try {
+    const response = await fetch('/api/compras', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(purchaseData)
     });
 
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-    throw new Error(
-      errorData.error ||
-      errorData.message ||
-      "Failed to process purchase"
-    );
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Error al procesar el pago"); 
     }
-
-    return response.json();
+    return await response.json();
+    
+  } catch (error) {
+    throw new Error(error.message || "Error de conexión con el servidor");
+  }
 };
 
 export const getPurchaseHistory = async (usuario_id) => {
