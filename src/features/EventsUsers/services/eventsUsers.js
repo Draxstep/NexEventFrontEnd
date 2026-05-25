@@ -152,6 +152,23 @@ export const purchaseTickets = async (payloadCompleto) => {
 
   return await response.json();
 };
+
+export const simulatePayment = async () => {
+  const response = await fetch(`${API_URL}/compras/simular-pago`, {
+    method: 'POST',
+  });
+
+  if (!response.ok) {
+    const errorData = await safeJson(response);
+    throw new Error(
+      errorData?.message ||
+      errorData?.error ||
+      'Error al simular el pago'
+    );
+  }
+
+  return await safeJson(response);
+};
 export const getPurchaseHistory = async (usuario_id) => {
   const response = await fetch(`${API_URL}/compras/usuario/${usuario_id}/historial`);
 

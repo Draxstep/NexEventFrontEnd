@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { X, CheckCircle, AlertCircle, Ticket, Plus, Minus, Loader2, CreditCard, ArrowLeft } from "lucide-react";
 import { usePurchase } from "../hooks/usePurchase";
+import { usePaymentStatus } from "../hooks/usePaymentStatus";
+import PaymentStatusPanel from "./PaymentStatusPanel";
+import { simulatePayment } from "../services/eventsUsers";
 
 const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
   // VOLVEMOS a extraer solo executePurchase (eliminé processPurchaseWithValidation)
@@ -8,6 +11,15 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
 
   const [ticketQuantities, setTicketQuantities] = useState({});
   const [validationError, setValidationError] = useState(null);
+
+  const {
+    status: paymentStatus,
+    history: paymentHistory,
+    isConnected: isStatusConnected,
+    connect: connectStatus,
+    disconnect: disconnectStatus,
+    reset: resetStatus,
+  } = usePaymentStatus();
   
   // Estados para manejar la vista de pago y los datos de la tarjeta
   const [showPaymentForm, setShowPaymentForm] = useState(false);
@@ -26,8 +38,20 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
       setValidationError(null);
       setShowPaymentForm(false); // Reiniciar vista
       setCardData({ cardNumber: '', cardBrand: 'visa', cardHolder: '', expiry: '', cvc: '' }); // Reiniciar formulario
+      resetStatus();
     }
-  }, [isOpen, resetPurchase]);
+  }, [isOpen, resetPurchase, resetStatus]);
+
+  useEffect(() => {
+    if (isOpen && showPaymentForm) {
+      connectStatus();
+      return undefined;
+    }
+
+    disconnectStatus();
+    resetStatus();
+    return undefined;
+  }, [isOpen, showPaymentForm, connectStatus, disconnectStatus, resetStatus]);
 
   const rawTicketTypes =
     event?.ticketTypes ||
@@ -133,6 +157,10 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
       }
     };
 
+    simulatePayment().catch((err) => {
+      console.warn("No se pudo iniciar la simulacion de pago:", err);
+    });
+
     // Llamamos a la función original del hook
     await executePurchase(payloadCompleto);
   };
@@ -194,6 +222,11 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
           ) : showPaymentForm ? (
             /* FORMULARIO DE PAGO (PASO 2) */
             <form onSubmit={executeFinalPurchase} className="space-y-4">
+              <PaymentStatusPanel
+                status={paymentStatus}
+                history={paymentHistory}
+                isConnected={isStatusConnected}
+              />
               {/* MENSAJE DE ERROR DEL API */}
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start text-sm text-red-600 mb-4">
