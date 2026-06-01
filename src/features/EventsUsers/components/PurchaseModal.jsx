@@ -3,7 +3,6 @@ import { X, CheckCircle, AlertCircle, Ticket, Plus, Minus, Loader2, CreditCard, 
 import { usePurchase } from "../hooks/usePurchase";
 import { usePaymentStatus } from "../hooks/usePaymentStatus";
 import PaymentStatusPanel from "./PaymentStatusPanel";
-import { simulatePayment } from "../services/eventsUsers";
 
 const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
   // VOLVEMOS a extraer solo executePurchase (eliminé processPurchaseWithValidation)
@@ -154,15 +153,26 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
         numero_tarjeta: cardData.cardNumber,
         cvc: cardData.cvc,
         fecha_expiracion: cardData.expiry
+      },
+      details: {
+        evento: event?.nombre || '',
+        ciudad: event?.ciudad || event?.lugar || '',
+        fecha: event?.fecha || '',
+        hora: event?.hora || '',
+        lugar: event?.lugar || ''
       }
     };
 
-    simulatePayment().catch((err) => {
-      console.warn("No se pudo iniciar la simulacion de pago:", err);
-    });
-
     // Llamamos a la función original del hook
     await executePurchase(payloadCompleto);
+  };
+
+  const handleAiRetry = () => {
+    resetStatus();
+  };
+
+  const handleAiEdit = () => {
+    resetStatus();
   };
 
   const handleCloseAfterSuccess = () => {
@@ -212,6 +222,12 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
               <p className="text-gray-600 mb-6">
                 Tus entradas para <strong>{event.nombre}</strong> han sido aseguradas.
               </p>
+              {paymentStatus?.status === 'AI_RESOLVED' && (
+                <div className="w-full bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-3 rounded-lg text-left mb-6">
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-1">Mensaje de la IA</p>
+                  <p className="text-sm font-medium">{paymentStatus?.message}</p>
+                </div>
+              )}
               <button
                 onClick={handleCloseAfterSuccess}
                 className="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -226,6 +242,8 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
                 status={paymentStatus}
                 history={paymentHistory}
                 isConnected={isStatusConnected}
+                onRetry={handleAiRetry}
+                onEditPayment={handleAiEdit}
               />
               {/* MENSAJE DE ERROR DEL API */}
               {error && (
