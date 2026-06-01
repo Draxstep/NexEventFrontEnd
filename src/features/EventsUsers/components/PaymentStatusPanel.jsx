@@ -41,7 +41,7 @@ const getAiOutcome = (payload) => {
   return null;
 };
 
-export default function PaymentStatusPanel({ status, history, isConnected, onRetry, onEditPayment }) {
+export default function PaymentStatusPanel({ status, history, isConnected, onRetry, onEditPayment, onBack }) {
   const activeStatus = status?.status;
   const aiOutcome = activeStatus === 'AI_RESOLVED' ? getAiOutcome(status) : null;
   const containerStyle =
@@ -57,7 +57,16 @@ export default function PaymentStatusPanel({ status, history, isConnected, onRet
           <p className="text-xs font-semibold uppercase tracking-wide">Estado del pago</p>
           <p className="text-sm font-bold">{label}</p>
         </div>
-        <div className="flex items-center gap-2 text-xs font-medium">
+        <div className="flex items-center gap-3 text-xs font-medium">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Volver al pago
+            </button>
+          )}
           <span className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-400'}`} />
           {isConnected ? 'Conectado' : 'Sin conexion'}
         </div>

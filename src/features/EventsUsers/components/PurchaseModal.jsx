@@ -5,7 +5,6 @@ import { usePaymentStatus } from "../hooks/usePaymentStatus";
 import PaymentStatusPanel from "./PaymentStatusPanel";
 
 const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
-  // VOLVEMOS a extraer solo executePurchase (eliminé processPurchaseWithValidation)
   const { loading, error, isSuccess, executePurchase, resetPurchase } = usePurchase();
 
   const [ticketQuantities, setTicketQuantities] = useState({});
@@ -23,7 +22,6 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
     reset: resetStatus,
   } = usePaymentStatus();
   
-  // Estados para manejar la vista de pago y los datos de la tarjeta
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [cardData, setCardData] = useState({
     cardNumber: '',
@@ -197,6 +195,11 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
     setShowStatusPanel(false);
   };
 
+  const handleBackToPayment = () => {
+    resetStatus();
+    setShowStatusPanel(false);
+  };
+
   const handleCloseAfterSuccess = () => {
     if (successTimerRef.current) {
       clearTimeout(successTimerRef.current);
@@ -278,6 +281,7 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
                   isConnected={isStatusConnected}
                   onRetry={handleAiRetry}
                   onEditPayment={handleAiEdit}
+                  onBack={handleBackToPayment}
                 />
                 <p className="text-xs text-gray-500">
                   Estamos procesando tu pago. Por favor, no cierres esta ventana.
