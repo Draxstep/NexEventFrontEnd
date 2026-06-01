@@ -7,15 +7,45 @@ const PAYMENT_STATUS_EVENT = 'payment.status';
 export const usePaymentStatus = (options = {}) => {
   const { autoConnect = false } = options;
   const socketRef = useRef(null);
+  const queueRef = useRef([]);
+  const timerRef = useRef(null);
+  const isProcessingRef = useRef(false);
   const [status, setStatus] = useState(null);
   const [history, setHistory] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
 
+  const clearQueue = useCallback(() => {
+    queueRef.current = [];
+    isProcessingRef.current = false;
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const processQueue = useCallback(() => {
+    if (queueRef.current.length === 0) {
+      isProcessingRef.current = false;
+      return;
+    }
+
+    isProcessingRef.current = true;
+    const nextPayload = queueRef.current.shift();
+    setStatus(nextPayload);
+    setHistory((prev) => [...prev, nextPayload]);
+
+    timerRef.current = setTimeout(() => {
+      processQueue();
+    }, 4000);
+  }, []);
+
   const handleStatus = useCallback((payload) => {
     if (!payload) return;
-    setStatus(payload);
-    setHistory((prev) => [...prev, payload]);
-  }, []);
+    queueRef.current.push(payload);
+    if (!isProcessingRef.current) {
+      processQueue();
+    }
+  }, [processQueue]);
 
   const connect = useCallback(() => {
     if (socketRef.current) return;
@@ -39,12 +69,14 @@ export const usePaymentStatus = (options = {}) => {
     socket.disconnect();
     socketRef.current = null;
     setIsConnected(false);
-  }, [handleStatus]);
+    clearQueue();
+  }, [handleStatus, clearQueue]);
 
   const reset = useCallback(() => {
     setStatus(null);
     setHistory([]);
-  }, []);
+    clearQueue();
+  }, [clearQueue]);
 
   useEffect(() => {
     if (!autoConnect) return undefined;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { X, CheckCircle, AlertCircle, Ticket, Plus, Minus, Loader2, CreditCard, ArrowLeft } from "lucide-react";
 import { usePurchase } from "../hooks/usePurchase";
 import { usePaymentStatus } from "../hooks/usePaymentStatus";
@@ -10,6 +10,9 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
 
   const [ticketQuantities, setTicketQuantities] = useState({});
   const [validationError, setValidationError] = useState(null);
+  const [showStatusPanel, setShowStatusPanel] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const successTimerRef = useRef(null);
 
   const {
     status: paymentStatus,
@@ -36,10 +39,27 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
       setTicketQuantities({});
       setValidationError(null);
       setShowPaymentForm(false); // Reiniciar vista
+      setShowStatusPanel(false);
+      setShowSuccessModal(false);
+      if (successTimerRef.current) {
+        clearTimeout(successTimerRef.current);
+        successTimerRef.current = null;
+      }
       setCardData({ cardNumber: '', cardBrand: 'visa', cardHolder: '', expiry: '', cvc: '' }); // Reiniciar formulario
       resetStatus();
     }
   }, [isOpen, resetPurchase, resetStatus]);
+
+  useEffect(() => {
+    if (!paymentStatus || !isSuccess || showSuccessModal) return;
+    if (paymentStatus.status !== 'AI_RESOLVED') return;
+
+    if (successTimerRef.current) return;
+    successTimerRef.current = setTimeout(() => {
+      setShowSuccessModal(true);
+      successTimerRef.current = null;
+    }, 14000);
+  }, [paymentStatus, isSuccess, showSuccessModal]);
 
   useEffect(() => {
     if (isOpen && showPaymentForm) {
@@ -134,6 +154,7 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
 
   const executeFinalPurchase = async (e) => {
     e.preventDefault();
+    setShowStatusPanel(true);
 
     const detallesCompra = Object.entries(ticketQuantities).map(([ticketIdStr, cantidad]) => {
       const ticket = ticketTypes.find(t => String(t.id) === ticketIdStr);
@@ -173,12 +194,25 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
 
   const handleAiEdit = () => {
     resetStatus();
+    setShowStatusPanel(false);
   };
 
   const handleCloseAfterSuccess = () => {
+    if (successTimerRef.current) {
+      clearTimeout(successTimerRef.current);
+      successTimerRef.current = null;
+    }
     onClose();
     window.location.reload();
   };
+
+  const isStatusView = showPaymentForm && showStatusPanel && !showSuccessModal;
+  const isPaymentFormView = showPaymentForm && !showStatusPanel && !showSuccessModal;
+  const headerTitle = isStatusView
+    ? "Estado del Pago"
+    : showPaymentForm && !showSuccessModal
+      ? "Datos de Pago"
+      : "Comprar Entradas";
 
   if (!isOpen || !event) return null;
 
@@ -189,7 +223,7 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
         {/* HEADER */}
         <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
           <h2 className="text-lg font-bold text-gray-800 flex items-center">
-            {showPaymentForm && !isSuccess ? (
+            {isPaymentFormView ? (
               <button 
                 onClick={() => setShowPaymentForm(false)}
                 className="mr-2 text-gray-500 hover:text-gray-800 transition-colors"
@@ -200,7 +234,7 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
             ) : (
               <Ticket className="w-5 h-5 mr-2 text-blue-600" />
             )}
-            {showPaymentForm && !isSuccess ? "Datos de Pago" : "Comprar Entradas"}
+            {headerTitle}
           </h2>
           <button
             onClick={onClose}
@@ -215,7 +249,7 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
         <div className="p-6 max-h-[80vh] overflow-y-auto">
 
           {/* PANTALLA DE ÉXITO */}
-          {isSuccess ? (
+          {showSuccessModal ? (
             <div className="flex flex-col items-center justify-center py-6 text-center">
               <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
               <h3 className="text-xl font-bold text-gray-900 mb-2">¡Compra Exitosa!</h3>
@@ -236,15 +270,22 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
               </button>
             </div>
           ) : showPaymentForm ? (
-            /* FORMULARIO DE PAGO (PASO 2) */
-            <form onSubmit={executeFinalPurchase} className="space-y-4">
-              <PaymentStatusPanel
-                status={paymentStatus}
-                history={paymentHistory}
-                isConnected={isStatusConnected}
-                onRetry={handleAiRetry}
-                onEditPayment={handleAiEdit}
-              />
+            showStatusPanel ? (
+              <div className="space-y-4">
+                <PaymentStatusPanel
+                  status={paymentStatus}
+                  history={paymentHistory}
+                  isConnected={isStatusConnected}
+                  onRetry={handleAiRetry}
+                  onEditPayment={handleAiEdit}
+                />
+                <p className="text-xs text-gray-500">
+                  Estamos procesando tu pago. Por favor, no cierres esta ventana.
+                </p>
+              </div>
+            ) : (
+              /* FORMULARIO DE PAGO (PASO 2) */
+              <form onSubmit={executeFinalPurchase} className="space-y-4">
               {/* MENSAJE DE ERROR DEL API */}
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start text-sm text-red-600 mb-4">
@@ -348,7 +389,8 @@ const PurchaseModal = ({ isOpen, onClose, event, currentUser }) => {
                   )}
                 </button>
               </div>
-            </form>
+              </form>
+            )
           ) : (
             /* SELECCIÓN DE ENTRADAS (PASO 1) */
             <>
